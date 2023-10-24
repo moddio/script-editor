@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor-core";
+import * as monaco from "monaco-editor";
 import ILanguage = monaco.languages.IMonarchLanguage;
 import ILanguageConfiguration = monaco.languages.LanguageConfiguration
 

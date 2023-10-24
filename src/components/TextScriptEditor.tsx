@@ -1,4 +1,4 @@
-import { Editor } from '@monaco-editor/react'
+import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, keywords } from '../constants/monacoConfig'
 import React, { useRef, useState } from 'react'
@@ -17,6 +17,7 @@ const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.
 const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
+  const monacoRef = useRef<Monaco | undefined>(undefined)
   return (
     <>
       <Editor
@@ -66,6 +67,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
 
         beforeMount={(monaco) => {
           if (!monaco.languages.getLanguages().some(({ id }) => id === MODDIOSCRIPT)) {
+            monacoRef.current = monaco
             // Register a new language
             monaco.languages.register({ id: MODDIOSCRIPT })
             monaco.languages.onLanguage(MODDIOSCRIPT, () => {
@@ -177,9 +179,26 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
         onChange={(v) => {
           try {
             setParseStr(parser.parse(v || ''))
+            monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } catch (e: any) {
-            
             setParseStr(e)
+            if (editorRef.current && monacoRef.current) {
+              const monaco = monacoRef.current
+              const editor = editorRef.current
+              const model = editor.getModel()
+              if (model) {
+                const markers:editor.IMarkerData[] = []
+                markers.push({
+                  message: `expect ${e.hash.expected} here, but got ${e.hash.token}`,
+                  severity: monaco.MarkerSeverity.Error,
+                  startLineNumber: e.hash.loc.first_line,
+                  startColumn: e.hash.loc.first_column,
+                  endLineNumber: e.hash.loc.last_line,
+                  endColumn: e.hash.loc.last_column,
+                });
+                monaco.editor.setModelMarkers(model, 'owner', markers)
+              }
+            }
           }
 
         }}
