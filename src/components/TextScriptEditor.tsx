@@ -1,9 +1,9 @@
 import { Editor } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, keywords } from '../constants/monacoConfig'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import parser from 'script-parser'
-import { Position, languages } from 'monaco-editor-core'
+import { Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 
@@ -16,6 +16,7 @@ const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.
 
 const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) => {
   const [parseStr, setParseStr] = useState('')
+  const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   return (
     <>
       <Editor
@@ -156,6 +157,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
           }
         }}
         onMount={editor => {
+          editorRef.current = editor
           editor.focus()
           editor.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
