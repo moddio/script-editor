@@ -6,6 +6,7 @@ specifiers:
   '@storybook/addon-interactions': 7.5.0
   '@storybook/addon-links': 7.5.0
   '@storybook/addon-onboarding': 1.0.8
+  '@storybook/addon-styling-webpack': 0.0.5
   '@storybook/blocks': 7.5.0
   '@storybook/preset-create-react-app': 7.5.0
   '@storybook/react': 7.5.0
@@ -52,6 +53,7 @@ devDependencies:
   '@storybook/addon-interactions': 7.5.0_geyy76hrwwhigrzhgqpqyzhuje
   '@storybook/addon-links': 7.5.0_biqbaboplfbrettd7655fr4n2y
   '@storybook/addon-onboarding': 1.0.8_biqbaboplfbrettd7655fr4n2y
+  '@storybook/addon-styling-webpack': 0.0.5_webpack@5.89.0
   '@storybook/blocks': 7.5.0_geyy76hrwwhigrzhgqpqyzhuje
   '@storybook/preset-create-react-app': 7.5.0_pqgjidfodwdvfytz3silaab2ma
   '@storybook/react': 7.5.0_vegmnuvoswdxuttpuhvewcem44
@@ -3444,6 +3446,15 @@ packages:
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
+    dev: true
+
+  /@storybook/addon-styling-webpack/0.0.5_webpack@5.89.0:
+    resolution: {integrity: sha512-8XdE3w+W7qxMeqnK/FDFipFN9XaVKUJFcHyM2ZBlhAAxVWMbTcifqw5lzqeK8jSAA/TUtpUp37gT2Bw/3k6slQ==}
+    peerDependencies:
+      webpack: ^5.0.0
+    dependencies:
+      '@storybook/node-logger': 7.5.0
+      webpack: 5.89.0_6byie4sngtleqericipkhgnx7i
     dev: true
 
   /@storybook/addon-toolbars/7.5.0_geyy76hrwwhigrzhgqpqyzhuje:

@@ -25,12 +25,12 @@ export interface TextScriptErrorProps {
 }
 interface TextScriptEditorProps {
   debug: boolean,
-  onError: (e?: Error) => void,
+  onError?: (e?: Error) => void,
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = false }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -199,6 +199,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } catch (e: any) {
             const error: TextScriptErrorProps = e
+            onError?.(e)
             setParseStr(e)
             if (editorRef.current && monacoRef.current) {
               const monaco = monacoRef.current
