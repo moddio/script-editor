@@ -122,39 +122,40 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
               //     }
               //   }
               // })
-              monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
-                signatureHelpTriggerCharacters: ['('],
-                signatureHelpRetriggerCharacters: [','],
-                provideSignatureHelp: async (model, position, token, context) => {
-                  let word = model.getWordAtPosition(position)
-                  console.log(model.getValue())
-                  console.log(word)
-                  const signatures = [];
+              // TODO: finish signatureHelp provider
+              // monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
+              //   signatureHelpTriggerCharacters: ['('],
+              //   signatureHelpRetriggerCharacters: [','],
+              //   provideSignatureHelp: async (model, position, token, context) => {
+              //     let word = model.getWordAtPosition(position)
+              //     console.log(model.getValue())
+              //     console.log(word)
+              //     const signatures = [];
 
-                  return {
-                    dispose: () => { },
-                    value: {
-                      activeParameter: 0,
-                      activeSignature: 0,
-                      signatures: [
-                        {
-                          label:
-                            "sendChatMessage(message $string)",
-                          documentation:
-                            'send chat message to all players',
-                          parameters: [
-                            {
-                              label: "message $string",
-                              documentation:
-                                "something u want to send to all players",
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  };
-                }
-              });
+              //     return {
+              //       dispose: () => { },
+              //       value: {
+              //         activeParameter: 0,
+              //         activeSignature: 0,
+              //         signatures: [
+              //           {
+              //             label:
+              //               "sendChatMessage(message $string)",
+              //             documentation:
+              //               'send chat message to all players',
+              //             parameters: [
+              //               {
+              //                 label: "message $string",
+              //                 documentation:
+              //                   "something u want to send to all players",
+              //               },
+              //             ],
+              //           },
+              //         ],
+              //       },
+              //     };
+              //   }
+              // });
             })
           }
         }}
