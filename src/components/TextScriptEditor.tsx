@@ -8,8 +8,24 @@ import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 
 
+export interface TextScriptErrorProps {
+  hash: {
+    text: string,
+    token: string,
+    line: number,
+    loc: {
+      first_line: number,
+      last_line: number,
+      first_column: number,
+      last_column: number
+    },
+    expected: string[],
+    recoverable: boolean
+  }
+}
 interface TextScriptEditorProps {
-  debug: boolean
+  debug: boolean,
+  onError: (e?: Error) => void,
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
@@ -182,20 +198,21 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
             setParseStr(parser.parse(v || ''))
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } catch (e: any) {
+            const error: TextScriptErrorProps = e
             setParseStr(e)
             if (editorRef.current && monacoRef.current) {
               const monaco = monacoRef.current
               const editor = editorRef.current
               const model = editor.getModel()
               if (model) {
-                const markers:editor.IMarkerData[] = []
+                const markers: editor.IMarkerData[] = []
                 markers.push({
-                  message: `expect ${e.hash.expected} here, but got ${e.hash.token}`,
+                  message: `expect ${error.hash.expected.join(', ')} here, but got ${error.hash.token}`,
                   severity: monaco.MarkerSeverity.Error,
-                  startLineNumber: e.hash.loc.first_line,
-                  startColumn: e.hash.loc.first_column,
-                  endLineNumber: e.hash.loc.last_line,
-                  endColumn: e.hash.loc.last_column,
+                  startLineNumber: error.hash.loc.first_line,
+                  startColumn: error.hash.loc.first_column,
+                  endLineNumber: error.hash.loc.last_line,
+                  endColumn: error.hash.loc.last_column,
                 });
                 monaco.editor.setModelMarkers(model, 'owner', markers)
               }
