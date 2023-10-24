@@ -3,8 +3,9 @@ import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, keywords } from '../constants/monacoConfig'
 import React, { useState } from 'react'
 import parser from 'script-parser'
-import { languages } from 'monaco-editor-core'
+import { Position, languages } from 'monaco-editor-core'
 import { ACTIONS } from '../constants/tmp'
+import { isCompositeComponent } from 'react-dom/test-utils'
 
 
 interface TextScriptEditorProps {
@@ -98,11 +99,35 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
                     incomplete: true,
                     suggestions: [...suggestions],
                   }
-                }
+                },
               })
+              // TODO: finish hover provider
+              // monaco.languages.registerHoverProvider(MODDIOSCRIPT, {
+              //   provideHover: (model, position, token) => {
+              //     const { column, lineNumber } = position;
+
+              //     const word = model.getWordAtPosition(position)?.word
+              //     const contents = model.getLineContent(lineNumber)
+              //     console.log(model, position, token, word, contents)
+              //     return {
+              //       value: 'hello?' || '',
+              //       isTrusted: true,
+              //       supportThemeIcons: true,
+              //       contents: [{
+              //         value: 'hello!',
+              //       }]
+              //     }
+              //   }
+              // })
               monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
-                signatureHelpTriggerCharacters: ["(", ","],
+                signatureHelpTriggerCharacters: ['('],
+                signatureHelpRetriggerCharacters: [','],
                 provideSignatureHelp: async (model, position, token, context) => {
+                  let word = model.getWordAtPosition(position)
+                  console.log(model.getValue())
+                  console.log(word)
+                  const signatures = [];
+
                   return {
                     dispose: () => { },
                     value: {
@@ -111,22 +136,14 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
                       signatures: [
                         {
                           label:
-                            "string substr(string $string, int $start [, int $length])",
+                            "sendChatMessage(message $string)",
+                          documentation:
+                            'send chat message to all players',
                           parameters: [
                             {
-                              label: "string $string",
+                              label: "message $string",
                               documentation:
-                                "this is not finished yet",
-                            },
-                            {
-                              label: "int $start",
-                              documentation:
-                                "If $start is non-negative, the returned string will start at the $start'th position in string, counting from zero. For instance, in the string 'abcdef', the character at position 0 is 'a', the character at position 2 is 'c', and so forth.\r\nIf $start is negative, the returned string will start at the $start'th character from the end of string. If $string is less than $start characters long, FALSE will be returned.",
-                            },
-                            {
-                              label: "int $length",
-                              documentation:
-                                "If $length is given and is positive, the string returned will contain at most $length characters beginning from $start (depending on the length of $string) If $length is given and is negative, then that many characters will be omitted from the end of $string (after the start position has been calculated when a start is negative). If $start denotes the position of this truncation or beyond, FALSE will be returned. If $length is given and is 0, FALSE or NULL, an empty string will be returned. If $length is omitted, the substring starting from $start until the end of the string will be returned.",
+                                "something u want to send to all players",
                             },
                           ],
                         },
@@ -154,32 +171,12 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ debug = false }) =>
               });
             }
           })
-          editor.onDidChangeCursorPosition((e) => {
-            const position = e.position;
-            const lineContent = editor.getModel()!.getLineContent(position.lineNumber);
-            const openingBracketIndex = lineContent.lastIndexOf('(', position.column - 1);
-            const closingBracketIndex = lineContent.indexOf(')', position.column);
-
-            // Check if the cursor is not inside a pair of brackets
-            if (openingBracketIndex === -1 || closingBracketIndex === -1 || closingBracketIndex < openingBracketIndex) {
-              // Find the nearest pair of brackets and move the cursor inside
-              const nearestOpeningBracketIndex = lineContent.lastIndexOf('(', position.column);
-              const nearestClosingBracketIndex = lineContent.indexOf(')', position.column);
-
-              if (nearestOpeningBracketIndex !== -1 && nearestClosingBracketIndex !== -1) {
-                const line = position.lineNumber;
-                const column = nearestOpeningBracketIndex + 1;
-
-                // Set the new cursor position
-                editor.setPosition({ lineNumber: line, column: column });
-              }
-            }
-          });
         }}
         onChange={(v) => {
           try {
             setParseStr(parser.parse(v || ''))
           } catch (e: any) {
+            
             setParseStr(e)
           }
 
