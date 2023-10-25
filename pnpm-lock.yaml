@@ -20,6 +20,7 @@ specifiers:
   '@types/react': ^18.2.29
   '@types/react-dom': ^18.2.13
   babel-plugin-named-exports-order: 0.0.2
+  css-loader: ^6.8.1
   eslint-plugin-storybook: ^0.6.15
   monaco-editor: ^0.44.0
   prop-types: 15.8.1
@@ -27,6 +28,7 @@ specifiers:
   react-dom: ^18.2.0
   react-scripts: 5.0.1
   storybook: 7.5.0
+  style-loader: ^3.3.3
   tailwindcss: ^3.3.3
   typescript: ^5.2.2
   web-vitals: ^2.1.4
@@ -60,9 +62,11 @@ devDependencies:
   '@storybook/react-webpack5': 7.5.0_t5m5oeikk6uhtdkioaycoqyugq
   '@storybook/testing-library': 0.2.2
   babel-plugin-named-exports-order: 0.0.2
+  css-loader: 6.8.1_webpack@5.89.0
   eslint-plugin-storybook: 0.6.15_srhnpoqmhm6ulnern6fnsuapfi
   prop-types: 15.8.1
   storybook: 7.5.0
+  style-loader: 3.3.3_webpack@5.89.0
   tailwindcss: 3.3.3
   webpack: 5.89.0_6byie4sngtleqericipkhgnx7i
 

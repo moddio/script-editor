@@ -12,9 +12,9 @@ interface MultiEditorModalProps {
   contents: MultiEditorModalContent[]
 }
 
-const MultiEditorModal:React.FC<MultiEditorModalProps> = ({title, action, actionDesc, contents}) => {
+const MultiEditorModal: React.FC<MultiEditorModalProps> = ({ title, action, actionDesc, contents }) => {
   return (
-    <div className='w-[750px] h-[518px] rounded border gap-2.5 pl-4 pr-[16px,] py-[8px,]'>
+    <div className="w-[750px] h-[518px] rounded border gap-2.5 pl-4 pr-[16px,] py-[8px,] border-[#fff] bg-[#272E37]">
       <span>{title}</span>
     </div>
   )
