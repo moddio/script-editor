@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import MultiEditorModal from 'components/MultiEditorModal';
+import MultiEditorModal from '../components/MultiEditorModal';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta = {
@@ -21,7 +21,7 @@ type Story = StoryObj<typeof meta>;
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Editor: Story = {
   args: {
-    title: 'test',
+    title: 'Edit Action',
     action: 'sendChatMessage',
     actionDesc: 'send chat message',
     contents: [
