@@ -24,5 +24,6 @@ export const Editor: Story = {
   args: {
     debug: true,
     onError: () => { },
+    onChange: (str) => {console.log(str)}
   }
 };

@@ -2,11 +2,10 @@ import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, keywords } from '../constants/monacoConfig'
 import React, { useRef, useState } from 'react'
-import parser from 'script-parser'
 import { Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
-
+import parser from 'script-parser'
 
 export interface TextScriptErrorProps {
   hash: {
@@ -25,12 +24,14 @@ export interface TextScriptErrorProps {
 }
 interface TextScriptEditorProps {
   debug: boolean,
+  defaultValue?: string,
   onError?: (e?: Error) => void,
+  onChange?: (parserOutput: string) => void,
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = false }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -38,7 +39,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = fal
     <>
       <Editor
         language={MODDIOSCRIPT}
-        height="2rem"
+        height="1.5rem"
+        theme="vs-dark"
         options={{
           renderLineHighlight: "none",
           quickSuggestions: true,
@@ -64,7 +66,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = fal
             autoFindInSelection: "never",
             seedSearchStringFromSelection: "never",
           },
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: "normal",
           wordWrap: "off",
           lineNumbers: "off",
@@ -178,6 +180,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = fal
         onMount={editor => {
           editorRef.current = editor
           editor.focus()
+          editor.setValue(defaultValue)
           editor.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
             if (e.position.lineNumber > 1) {
@@ -195,12 +198,17 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onError, debug = fal
         }}
         onChange={(v) => {
           try {
-            setParseStr(parser.parse(v || ''))
+            const output = parser.parse(v || '')
+            setParseStr(output)
+            onChange?.(output)
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } catch (e: any) {
             const error: TextScriptErrorProps = e
             onError?.(e)
             setParseStr(e)
+            if(v === '') {
+              onChange?.('')
+            }
             if (editorRef.current && monacoRef.current) {
               const monaco = monacoRef.current
               const editor = editorRef.current
