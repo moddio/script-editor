@@ -26,7 +26,7 @@ interface TextScriptEditorProps {
   debug: boolean,
   defaultValue?: string,
   onError?: (e?: Error) => void,
-  onChange?: (parserOutput: string) => void,
+  onChange?: (parserOutput: string | undefined) => void,
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
@@ -207,7 +207,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, d
             onError?.(e)
             setParseStr(e)
             if(v === '') {
-              onChange?.('')
+              onChange?.(undefined)
             }
             if (editorRef.current && monacoRef.current) {
               const monaco = monacoRef.current
