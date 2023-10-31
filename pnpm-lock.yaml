@@ -27,7 +27,7 @@ specifiers:
   react: ^18.2.0
   react-dom: ^18.2.0
   react-scripts: 5.0.1
-  script-parser: file:D:/moonlighting/script-parser
+  script-parser: github:moddio/script-parser
   storybook: 7.5.0
   style-loader: ^3.3.3
   tailwindcss: ^3.3.3
@@ -48,7 +48,7 @@ dependencies:
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   react-scripts: 5.0.1_dy2w72hacckmkqk52u2vaimsyi
-  script-parser: file:../script-parser
+  script-parser: github.com/moddio/script-parser/0e3c0f372c25919399c67cd25011605ff247486e
   typescript: 5.2.2
   web-vitals: 2.1.4
 
@@ -13718,8 +13718,8 @@ packages:
     engines: {node: '>=12.20'}
     dev: true
 
-  file:../script-parser:
-    resolution: {directory: ../script-parser, type: directory}
+  github.com/moddio/script-parser/0e3c0f372c25919399c67cd25011605ff247486e:
+    resolution: {commit: 0e3c0f372c25919399c67cd25011605ff247486e, repo: git+ssh://git@github.com/moddio/script-parser.git, type: git}
     name: script-parser
     version: 0.0.1
     dependencies:
