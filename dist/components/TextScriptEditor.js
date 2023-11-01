@@ -1,11 +1,66 @@
 import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
 import { Editor } from '@monaco-editor/react';
 import { MODDIOSCRIPT } from '../constants/string';
-import { languageDef, configuration } from '../constants/monacoConfig';
+import { languageDef, configuration, KEYWORDS } from '../constants/monacoConfig';
 import { useRef, useState } from 'react';
 import { ACTIONS } from '../constants/tmp';
 import parser from 'script-parser';
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
+const searchChars = ['"', "'", ")"];
+const getInputProps = (functionProps) => {
+    const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
+    if (targetAction) {
+        const targetFrag = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset];
+        if (targetFrag && targetFrag.extraData) {
+            return targetFrag.extraData.dataType;
+        }
+    }
+    return '';
+};
+const getFunctionProps = (s, cursorPos) => {
+    let output = {
+        functionName: "",
+        functionParametersOffset: 0
+    };
+    let offset = 0;
+    let searchChar = '';
+    for (let i = cursorPos; i >= 0; i--) {
+        if (searchChar !== '') {
+            if (s[i] === searchChar) {
+                searchChar = '';
+            }
+            continue;
+        }
+        if (searchChars.includes(s[i])) {
+            searchChar = s[i];
+            if (s[i] === ')') {
+                searchChar = '(';
+            }
+            continue;
+        }
+        if (KEYWORDS.includes(output.functionName)) {
+            if (offset === 0) {
+                return output;
+            }
+            else {
+                offset -= 1;
+            }
+        }
+        if (/^[a-zA-Z]+$/.test(s[i])) {
+            output.functionName = s[i] + output.functionName;
+        }
+        else {
+            if (s[i] === ',') {
+                output.functionParametersOffset += 1;
+                offset += 1;
+            }
+            else {
+                output.functionName = '';
+            }
+        }
+    }
+    return output;
+};
 const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' }) => {
     const [parseStr, setParseStr] = useState('');
     const editorRef = useRef(undefined);
@@ -62,23 +117,28 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                             monaco.languages.setLanguageConfiguration(MODDIOSCRIPT, configuration);
                             monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT, {
                                 triggerCharacters,
-                                provideCompletionItems: (model, position, context) => {
+                                provideCompletionItems: (model, position, context, token) => {
                                     let word = model.getWordUntilPosition(position);
+                                    let words = model.getWordAtPosition(position);
                                     let range = {
                                         startLineNumber: position.lineNumber,
                                         endLineNumber: position.lineNumber,
                                         startColumn: word.startColumn,
                                         endColumn: word.endColumn,
                                     };
-                                    const suggestions = ACTIONS.map(obj => ({
+                                    let cursorPos = model.getOffsetAt(position);
+                                    const code = model.getValue();
+                                    const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1));
+                                    const suggestions = ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '').map(obj => ({
                                         label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                                             return `${v.field}:${v.dataType}`;
-                                        }).join(', ')})`,
+                                        }).join(', ')}): ${obj.data.category}`,
                                         kind: monaco.languages.CompletionItemKind.Function,
                                         insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                                             return `\${${idx + 1}:${v.field}}`;
                                         }).join(', ')})`,
-                                        documentation: 'hello',
+                                        // TODO: add documentation
+                                        documentation: '',
                                         insertTextRules: 4,
                                         detail: obj.title,
                                         range,
@@ -143,7 +203,7 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                     }
                 }, onMount: editor => {
                     editorRef.current = editor;
-                    editor.focus();
+                    // editor.focus()
                     editor.setValue(defaultValue);
                     editor.onDidChangeCursorPosition((e) => {
                         // Monaco tells us the line number after cursor position changed
