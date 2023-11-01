@@ -1,6 +1,6 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
-import { languageDef, configuration, keywords } from '../constants/monacoConfig'
+import { languageDef, configuration, KEYWORDS } from '../constants/monacoConfig'
 import React, { useRef, useState } from 'react'
 import { Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
@@ -31,7 +31,70 @@ interface TextScriptEditorProps {
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, debug = false, defaultValue = '' }) => {
+interface FunctionProps {
+  functionName: string,
+  functionParametersOffset: number
+}
+
+
+const searchChars = ['"', "'", ")"]
+
+const getInputProps = (functionProps: FunctionProps) => {
+  const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
+  if (targetAction) {
+    const targetFrag: any = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset]
+    if (targetFrag && targetFrag.extraData) {
+      return targetFrag.extraData.dataType
+    }
+  }
+  return ''
+}
+
+const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
+  let output: FunctionProps =
+  {
+    functionName: "",
+    functionParametersOffset: 0
+  }
+  let offset = 0;
+  let searchChar = '';
+  for (let i = cursorPos; i >= 0; i--) {
+    if (searchChar !== '') {
+      if (s[i] === searchChar) {
+        searchChar = ''
+      }
+      continue
+    }
+    if (searchChars.includes(s[i])) {
+      searchChar = s[i]
+      if (s[i] === ')') {
+        searchChar = '('
+      }
+      continue
+    }
+    if (KEYWORDS.includes(output.functionName)) {
+      if (offset === 0) {
+        return output
+      } else {
+        offset -= 1
+      }
+    }
+    if (/^[a-zA-Z]+$/.test(s[i])) {
+      output.functionName = s[i] + output.functionName
+    } else {
+      if (s[i] === ',') {
+        output.functionParametersOffset += 1
+        offset += 1
+      } else {
+        output.functionName = ''
+      }
+    }
+  }
+  return output;
+}
+
+
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -95,28 +158,33 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, d
               monaco.languages.setLanguageConfiguration(MODDIOSCRIPT, configuration)
               monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT, {
                 triggerCharacters,
-                provideCompletionItems: (model, position, context) => {
+                provideCompletionItems: (model, position, context, token) => {
                   let word = model.getWordUntilPosition(position);
+                  let words = model.getWordAtPosition(position);
                   let range = {
                     startLineNumber: position.lineNumber,
                     endLineNumber: position.lineNumber,
                     startColumn: word.startColumn,
                     endColumn: word.endColumn,
                   };
-                  const suggestions: languages.CompletionItem[] = ACTIONS.map(obj => ({
-                    label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
-                      return `${v.field}:${v.dataType}`
-                    }).join(', ')})`,
-                    kind: monaco.languages.CompletionItemKind.Function,
-                    insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
-                      return `\${${idx + 1}:${v.field}}`
-                    }).join(', ')})`,
-                    // TODO: add documentation
-                    documentation: '',
-                    insertTextRules: 4,
-                    detail: obj.title,
-                    range,
-                  }))
+                  let cursorPos = model.getOffsetAt(position);
+                  const code = model.getValue();
+                  const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
+                  const suggestions: languages.CompletionItem[] =
+                    ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '').map(obj => ({
+                      label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                        return `${v.field}:${v.dataType}`
+                      }).join(', ')}): ${obj.data.category}`,
+                      kind: monaco.languages.CompletionItemKind.Function,
+                      insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                        return `\${${idx + 1}:${v.field}}`
+                      }).join(', ')})`,
+                      // TODO: add documentation
+                      documentation: '',
+                      insertTextRules: 4,
+                      detail: obj.title,
+                      range,
+                    }))
                   return {
                     incomplete: true,
                     suggestions: [...suggestions],
@@ -180,7 +248,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, d
         }}
         onMount={editor => {
           editorRef.current = editor
-          editor.focus()
+          // editor.focus()
           editor.setValue(defaultValue)
           editor.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
@@ -207,7 +275,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, d
             const error: TextScriptErrorProps = e
             onError?.(e)
             setParseStr(e)
-            if(v === '') {
+            if (v === '') {
               onChange?.(undefined)
             }
             if (editorRef.current && monacoRef.current) {
