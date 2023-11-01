@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { ACTIONS } from '../constants/tmp';
 import parser from 'script-parser';
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
+const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 const searchChars = ['"', "'", ")"];
 const getInputProps = (functionProps) => {
     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
@@ -13,6 +14,9 @@ const getInputProps = (functionProps) => {
         const targetFrag = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset];
         if (targetFrag && targetFrag.extraData) {
             return targetFrag.extraData.dataType;
+        }
+        else {
+            return targetFrag.dataType;
         }
     }
     return '';
@@ -167,38 +171,38 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                             //   }
                             // })
                             // TODO: finish signatureHelp provider
-                            // monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
-                            //   signatureHelpTriggerCharacters: ['('],
-                            //   signatureHelpRetriggerCharacters: [','],
-                            //   provideSignatureHelp: async (model, position, token, context) => {
-                            //     let word = model.getWordAtPosition(position)
-                            //     console.log(model.getValue())
-                            //     console.log(word)
-                            //     const signatures = [];
-                            //     return {
-                            //       dispose: () => { },
-                            //       value: {
-                            //         activeParameter: 0,
-                            //         activeSignature: 0,
-                            //         signatures: [
-                            //           {
-                            //             label:
-                            //               "sendChatMessage(message $string)",
-                            //             documentation:
-                            //               'send chat message to all players',
-                            //             parameters: [
-                            //               {
-                            //                 label: "message $string",
-                            //                 documentation:
-                            //                   "something u want to send to all players",
-                            //               },
-                            //             ],
-                            //           },
-                            //         ],
-                            //       },
-                            //     };
-                            //   }
-                            // });
+                            monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
+                                signatureHelpTriggerCharacters: triggerCharactersWithNumber,
+                                provideSignatureHelp: async (model, position, token, context) => {
+                                    const code = model.getValue();
+                                    let cursorPos = model.getOffsetAt(position);
+                                    const functionProps = getFunctionProps(code, cursorPos - 1);
+                                    const inputProps = getInputProps(functionProps);
+                                    const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
+                                    const targetFrag = targetAction?.data.fragments.filter((frag) => frag.type === 'variable');
+                                    const signatures = !targetAction ? [] :
+                                        [
+                                            {
+                                                label: '',
+                                                documentation: {
+                                                    value: `${functionProps.functionName}(${targetFrag?.map((frag, idx) => (`${idx === functionProps.functionParametersOffset ? '**' : ''}${frag.field}: ${frag.extraData?.dataType || frag.dataType}${idx === functionProps.functionParametersOffset ? '**' : ''}`))})`,
+                                                },
+                                                parameters: targetFrag.map((frag) => ({
+                                                    label: "",
+                                                    documentation: frag.filed
+                                                }))
+                                            },
+                                        ];
+                                    return {
+                                        dispose: () => { },
+                                        value: {
+                                            activeParameter: functionProps.functionParametersOffset,
+                                            activeSignature: 0,
+                                            signatures,
+                                        },
+                                    };
+                                }
+                            });
                         });
                     }
                 }, onMount: editor => {

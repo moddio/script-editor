@@ -30,6 +30,7 @@ interface TextScriptEditorProps {
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
+const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 
 interface FunctionProps {
   functionName: string,
@@ -45,6 +46,8 @@ const getInputProps = (functionProps: FunctionProps) => {
     const targetFrag: any = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag && targetFrag.extraData) {
       return targetFrag.extraData.dataType
+    } else {
+      return targetFrag.dataType
     }
   }
   return ''
@@ -210,39 +213,42 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
               //   }
               // })
               // TODO: finish signatureHelp provider
-              // monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
-              //   signatureHelpTriggerCharacters: ['('],
-              //   signatureHelpRetriggerCharacters: [','],
-              //   provideSignatureHelp: async (model, position, token, context) => {
-              //     let word = model.getWordAtPosition(position)
-              //     console.log(model.getValue())
-              //     console.log(word)
-              //     const signatures = [];
+              monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
+                signatureHelpTriggerCharacters: triggerCharactersWithNumber,
+                provideSignatureHelp: async (model, position, token, context) => {
+                  const code = model.getValue();
+                  let cursorPos = model.getOffsetAt(position);
+                  const functionProps = getFunctionProps(code, cursorPos - 1)
+                  const inputProps = getInputProps(functionProps)
+                  const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
+                  const targetFrag: any = targetAction?.data.fragments.filter((frag) => frag.type === 'variable')
+                  const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
+                    [
+                      {
+                        label: '',
+                        documentation: {
+                          value:
+                            `${functionProps.functionName}(${targetFrag?.map((frag: any, idx: number) => (`${idx === functionProps.functionParametersOffset ? '**' : ''}${frag.field}: ${frag.extraData?.dataType || frag.dataType}${idx === functionProps.functionParametersOffset ? '**' : ''}`))})`,
+                        },
 
-              //     return {
-              //       dispose: () => { },
-              //       value: {
-              //         activeParameter: 0,
-              //         activeSignature: 0,
-              //         signatures: [
-              //           {
-              //             label:
-              //               "sendChatMessage(message $string)",
-              //             documentation:
-              //               'send chat message to all players',
-              //             parameters: [
-              //               {
-              //                 label: "message $string",
-              //                 documentation:
-              //                   "something u want to send to all players",
-              //               },
-              //             ],
-              //           },
-              //         ],
-              //       },
-              //     };
-              //   }
-              // });
+                        parameters:
+                          targetFrag.map((frag: any) => ({
+                            label: "",
+                            documentation: frag.filed
+                          }))
+                      },
+                    ];
+
+                  return {
+                    dispose: () => { },
+                    value: {
+                      activeParameter: functionProps.functionParametersOffset,
+                      activeSignature: 0,
+                      signatures,
+                    },
+                  };
+                }
+              });
             })
           }
         }}
