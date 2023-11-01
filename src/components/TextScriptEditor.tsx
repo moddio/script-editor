@@ -111,7 +111,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({onChange, onError, d
                     insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                       return `\${${idx + 1}:${v.field}}`
                     }).join(', ')})`,
-                    documentation: 'hello',
+                    // TODO: add documentation
+                    documentation: '',
                     insertTextRules: 4,
                     detail: obj.title,
                     range,
