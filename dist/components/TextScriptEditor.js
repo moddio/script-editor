@@ -140,6 +140,7 @@ const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false,
     const editorRef = useRef(undefined);
     const monacoRef = useRef(undefined);
     return (_jsxs(_Fragment, { children: [_jsx(Editor, { language: MODDIOSCRIPT, height: "1.5rem", theme: "vs-dark", options: {
+                    automaticLayout: true,
                     renderLineHighlight: "none",
                     quickSuggestions: true,
                     glyphMargin: false,
@@ -276,6 +277,15 @@ const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false,
                     }
                 }, onMount: editor => {
                     editorRef.current = editor;
+                    // detect tab click
+                    editor.onKeyDown((e) => {
+                        console.log("keydown outside", e.keyCode);
+                        if (e.keyCode === 2) {
+                            console.log('tab');
+                            // e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    });
                     // editor.focus()
                     editor.setValue(defaultValue);
                     editor.onDidChangeCursorPosition((e) => {

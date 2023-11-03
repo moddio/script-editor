@@ -325,6 +325,14 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
         }}
         onMount={editor => {
           editorRef.current = editor
+
+          // detect tab click
+          editor.onKeyDown((e) => {
+            if (e.keyCode === 2) {
+              e.stopPropagation();
+            }
+          });
+
           // editor.focus()
           editor.setValue(defaultValue)
           editor.onDidChangeCursorPosition((e) => {
