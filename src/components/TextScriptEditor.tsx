@@ -25,6 +25,7 @@ export interface TextScriptErrorProps {
 interface TextScriptEditorProps {
   debug: boolean,
   defaultValue?: string,
+  defaultReturnType?: string,
   onError?: (e?: Error) => void,
   onChange?: (parserOutput: string | undefined) => void,
 }
@@ -100,7 +101,7 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
 }
 
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({defaultReturnType, onChange, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -166,7 +167,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
                 triggerCharacters,
                 provideCompletionItems: (model, position, context, token) => {
                   let word = model.getWordUntilPosition(position);
-                  let words = model.getWordAtPosition(position);
                   let range = {
                     startLineNumber: position.lineNumber,
                     endLineNumber: position.lineNumber,
@@ -177,7 +177,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
                   const code = model.getValue();
                   const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
                   const suggestions: languages.CompletionItem[] =
-                    ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '' ||
+                    ACTIONS.filter((obj) => obj.data.category === inputProps ||
+                     (inputProps === '' && (!defaultReturnType || obj.data.category === defaultReturnType))||
                      (!constantTypes.includes(inputProps) && obj.data.category === 'entity') ).map(obj => ({
                       label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                         return `${v.field}:${v.dataType}`
