@@ -70,6 +70,7 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
     const editorRef = useRef(undefined);
     const monacoRef = useRef(undefined);
     return (_jsxs(_Fragment, { children: [_jsx(Editor, { language: MODDIOSCRIPT, height: "1.5rem", theme: "vs-dark", options: {
+                    automaticLayout: true,
                     renderLineHighlight: "none",
                     quickSuggestions: true,
                     glyphMargin: false,
@@ -207,13 +208,22 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                     }
                 }, onMount: editor => {
                     editorRef.current = editor;
+                    // detect tab click
+                    editor.onKeyDown((e) => {
+                        console.log("keydown outside", e.keyCode);
+                        if (e.keyCode === 2) {
+                            console.log('tab');
+                            // e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    });
                     // editor.focus()
                     editor.setValue(defaultValue);
                     editor.onDidChangeCursorPosition((e) => {
                         // Monaco tells us the line number after cursor position changed
                         if (e.position.lineNumber > 1) {
-                            // Trim editor value
-                            editor.setValue(editor.getValue().trim());
+                            const updatedValue = editor.getValue().trim().replace(/\n/g, ' ');
+                            editor.setValue(updatedValue);
                             // Bring back the cursor to the end of the first line
                             editor.setPosition({
                                 ...e.position,
