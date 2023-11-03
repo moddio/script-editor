@@ -13,10 +13,12 @@ const getInputProps = (functionProps) => {
     if (targetAction) {
         const targetFrag = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset];
         if (targetFrag && targetFrag.extraData) {
-            return targetFrag.extraData.dataType;
-        }
-        else {
-            return targetFrag.dataType;
+            if (targetFrag.extraData) {
+                return targetFrag.extraData.dataType;
+            }
+            else if (targetFrag.dataType) {
+                return targetFrag;
+            }
         }
     }
     return '';
@@ -212,8 +214,8 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                     editor.onDidChangeCursorPosition((e) => {
                         // Monaco tells us the line number after cursor position changed
                         if (e.position.lineNumber > 1) {
-                            // Trim editor value
-                            editor.setValue(editor.getValue().trim());
+                            const updatedValue = editor.getValue().trim().replace(/\n/g, ' ');
+                            editor.setValue(updatedValue);
                             // Bring back the cursor to the end of the first line
                             editor.setPosition({
                                 ...e.position,
