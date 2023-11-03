@@ -1,13 +1,13 @@
 ## TODO
 - [x] {
-  &emsp;"function": "calculate",
-  &emsp;"items": [
-  &emsp;&emsp;{
-      &emsp;&emsp;&emsp;"operator": "*"
-  &emsp;&emsp;},
-  &emsp;&emsp;some_number,
-  &emsp;&emsp;-1
-  &emsp;]
+  "function": "calculate",
+  "items": [
+  {
+      "operator": "*"
+  },
+  some_number,
+  -1
+  ]
 } should convert to -some_number not some_number * -1
 - [x] add missing {function: 'calculate'} to +-*/
 ( some slots show [object object] it's bc this)
