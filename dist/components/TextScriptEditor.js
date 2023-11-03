@@ -217,7 +217,6 @@ const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false,
                                         detail: obj.title,
                                         range,
                                     }));
-                                    console.log(suggestions);
                                     return {
                                         incomplete: true,
                                         suggestions,

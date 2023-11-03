@@ -260,7 +260,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                       detail: obj.title,
                       range,
                     }))
-                  console.log(suggestions)
                   return {
                     incomplete: true,
                     suggestions,
