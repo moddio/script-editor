@@ -8,6 +8,7 @@ import parser from 'script-parser';
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 const searchChars = ['"', "'", ")"];
+const constantTypes = ['string', 'number', 'boolean'];
 const getInputProps = (functionProps) => {
     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
     if (targetAction) {
@@ -67,7 +68,7 @@ const getFunctionProps = (s, cursorPos) => {
     }
     return output;
 };
-const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false, defaultValue = '' }) => {
     const [parseStr, setParseStr] = useState('');
     const editorRef = useRef(undefined);
     const monacoRef = useRef(undefined);
@@ -125,7 +126,6 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                 triggerCharacters,
                                 provideCompletionItems: (model, position, context, token) => {
                                     let word = model.getWordUntilPosition(position);
-                                    let words = model.getWordAtPosition(position);
                                     let range = {
                                         startLineNumber: position.lineNumber,
                                         endLineNumber: position.lineNumber,
@@ -135,7 +135,9 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                     let cursorPos = model.getOffsetAt(position);
                                     const code = model.getValue();
                                     const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1));
-                                    const suggestions = ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '').map(obj => ({
+                                    const suggestions = ACTIONS.filter((obj) => obj.data.category === inputProps ||
+                                        (inputProps === '' && (!defaultReturnType || obj.data.category === defaultReturnType)) ||
+                                        (!constantTypes.includes(inputProps) && obj.data.category === 'entity')).map(obj => ({
                                         label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                                             return `${v.field}:${v.dataType}`;
                                         }).join(', ')}): ${obj.data.category}`,
@@ -179,7 +181,6 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                     const code = model.getValue();
                                     let cursorPos = model.getOffsetAt(position);
                                     const functionProps = getFunctionProps(code, cursorPos - 1);
-                                    const inputProps = getInputProps(functionProps);
                                     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
                                     const targetFrag = targetAction?.data.fragments.filter((frag) => frag.type === 'variable');
                                     const signatures = !targetAction ? [] :

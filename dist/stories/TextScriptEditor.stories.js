@@ -16,6 +16,7 @@ export default meta;
 export const Editor = {
     args: {
         debug: true,
+        defaultReturnType: 'unit',
         onError: () => { },
         onChange: (str) => { console.log(str); }
     }
