@@ -259,8 +259,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
           editor.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
             if (e.position.lineNumber > 1) {
-              // Trim editor value
-              editor.setValue(editor.getValue().trim());
+              const updatedValue = editor.getValue().trim().replace(/\n/g, ' ')
+              editor.setValue(updatedValue);
               // Bring back the cursor to the end of the first line
               editor.setPosition({
                 ...e.position,
