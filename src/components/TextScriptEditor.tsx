@@ -39,6 +39,7 @@ interface FunctionProps {
 
 
 const searchChars = ['"', "'", ")"]
+const constantTypes =  ['string', 'number', 'boolean']
 
 const getInputProps = (functionProps: FunctionProps) => {
   const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
@@ -176,7 +177,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
                   const code = model.getValue();
                   const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
                   const suggestions: languages.CompletionItem[] =
-                    ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '').map(obj => ({
+                    ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '' ||
+                     (!constantTypes.includes(inputProps) && obj.data.category === 'entity') ).map(obj => ({
                       label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
                         return `${v.field}:${v.dataType}`
                       }).join(', ')}): ${obj.data.category}`,
@@ -221,7 +223,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ onChange, onError, 
                   const code = model.getValue();
                   let cursorPos = model.getOffsetAt(position);
                   const functionProps = getFunctionProps(code, cursorPos - 1)
-                  const inputProps = getInputProps(functionProps)
                   const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
                   const targetFrag: any = targetAction?.data.fragments.filter((frag) => frag.type === 'variable')
                   const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
