@@ -23,6 +23,7 @@ type Story = StoryObj<typeof meta>;
 export const Editor: Story = {
   args: {
     debug: true,
+    defaultReturnType: 'unit',
     onError: () => { },
     onChange: (str) => {console.log(str)}
   }

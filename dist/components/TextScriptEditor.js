@@ -8,15 +8,85 @@ import parser from 'script-parser';
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 const searchChars = ['"', "'", ")"];
+const constantTypes = ['string', 'number', 'boolean'];
+const filterPipe = (defaultReturnType, inputProps, category) => {
+    return equalTypeFilter(inputProps, category) ||
+        defaultReturnTypeFilter(defaultReturnType, inputProps, category) ||
+        extraFilter(inputProps, category);
+};
+const equalTypeFilter = (inputProps, category) => {
+    if (inputProps === category) {
+        return true;
+    }
+    return false;
+};
+const extraFilter = (inputProps, category) => {
+    if (!constantTypes.includes(inputProps) && category === 'entity') {
+        return true;
+    }
+    return false;
+};
+const checkSuggestions = (obj, inputProps, defaultReturnType) => {
+    let value = '';
+    if (inputProps === '') {
+        if (defaultReturnType) {
+            value = defaultReturnType;
+        }
+        else {
+            return 'b';
+        }
+    }
+    else {
+        value = inputProps;
+    }
+    if (obj.data.category === value) {
+        return 'a';
+    }
+    return 'b';
+};
+const orderSuggestions = (arr, inputProps, defaultReturnType) => {
+    let value = '';
+    if (inputProps === '') {
+        if (defaultReturnType) {
+            value = defaultReturnType;
+        }
+        else {
+            return arr;
+        }
+    }
+    else {
+        value = inputProps;
+    }
+    const sortedArr = arr.sort(function (a, b) {
+        if (a.data.category === value && b.data.category !== value) {
+            return -1;
+        }
+        else if (a.data.category !== value && b.data.category === value) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    });
+    return sortedArr;
+};
+const defaultReturnTypeFilter = (defaultReturnType, inputProps, category) => {
+    if (inputProps === '' && (!defaultReturnType || category === defaultReturnType)) {
+        return true;
+    }
+    return false;
+};
 const getInputProps = (functionProps) => {
     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
     if (targetAction) {
         const targetFrag = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset];
         if (targetFrag && targetFrag.extraData) {
-            return targetFrag.extraData.dataType;
-        }
-        else {
-            return targetFrag.dataType;
+            if (targetFrag.extraData) {
+                return targetFrag.extraData.dataType;
+            }
+            else if (targetFrag.dataType) {
+                return targetFrag;
+            }
         }
     }
     return '';
@@ -65,7 +135,7 @@ const getFunctionProps = (s, cursorPos) => {
     }
     return output;
 };
-const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false, defaultValue = '' }) => {
     const [parseStr, setParseStr] = useState('');
     const editorRef = useRef(undefined);
     const monacoRef = useRef(undefined);
@@ -124,7 +194,6 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                 triggerCharacters,
                                 provideCompletionItems: (model, position, context, token) => {
                                     let word = model.getWordUntilPosition(position);
-                                    let words = model.getWordAtPosition(position);
                                     let range = {
                                         startLineNumber: position.lineNumber,
                                         endLineNumber: position.lineNumber,
@@ -134,23 +203,25 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                     let cursorPos = model.getOffsetAt(position);
                                     const code = model.getValue();
                                     const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1));
-                                    const suggestions = ACTIONS.filter((obj) => obj.data.category === inputProps || inputProps === '').map(obj => ({
-                                        label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                                    const suggestions = ACTIONS.map((obj, orderIdx) => ({
+                                        label: `${obj.key}(${obj.data.fragments.filter((v) => v.type === 'variable').map((v, idx) => {
                                             return `${v.field}:${v.dataType}`;
                                         }).join(', ')}): ${obj.data.category}`,
                                         kind: monaco.languages.CompletionItemKind.Function,
-                                        insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                                        insertText: `${obj.key}(${obj.data.fragments.filter((v) => v.type === 'variable').map((v, idx) => {
                                             return `\${${idx + 1}:${v.field}}`;
                                         }).join(', ')})`,
                                         // TODO: add documentation
-                                        documentation: '',
+                                        sortText: checkSuggestions(obj, inputProps, defaultReturnType),
+                                        documentation: obj.data.fragments.filter((v) => v.type === 'constant')[0]?.text,
                                         insertTextRules: 4,
                                         detail: obj.title,
                                         range,
                                     }));
+                                    console.log(suggestions);
                                     return {
                                         incomplete: true,
-                                        suggestions: [...suggestions],
+                                        suggestions,
                                     };
                                 },
                             });
@@ -178,7 +249,6 @@ const TextScriptEditor = ({ onChange, onError, debug = false, defaultValue = '' 
                                     const code = model.getValue();
                                     let cursorPos = model.getOffsetAt(position);
                                     const functionProps = getFunctionProps(code, cursorPos - 1);
-                                    const inputProps = getInputProps(functionProps);
                                     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
                                     const targetFrag = targetAction?.data.fragments.filter((frag) => frag.type === 'variable');
                                     const signatures = !targetAction ? [] :
