@@ -9,6 +9,73 @@ const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.
 const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 const searchChars = ['"', "'", ")"];
 const constantTypes = ['string', 'number', 'boolean'];
+const filterPipe = (defaultReturnType, inputProps, category) => {
+    return equalTypeFilter(inputProps, category) ||
+        defaultReturnTypeFilter(defaultReturnType, inputProps, category) ||
+        extraFilter(inputProps, category);
+};
+const equalTypeFilter = (inputProps, category) => {
+    if (inputProps === category) {
+        return true;
+    }
+    return false;
+};
+const extraFilter = (inputProps, category) => {
+    if (!constantTypes.includes(inputProps) && category === 'entity') {
+        return true;
+    }
+    return false;
+};
+const checkSuggestions = (obj, inputProps, defaultReturnType) => {
+    let value = '';
+    if (inputProps === '') {
+        if (defaultReturnType) {
+            value = defaultReturnType;
+        }
+        else {
+            return 'b';
+        }
+    }
+    else {
+        value = inputProps;
+    }
+    if (obj.data.category === value) {
+        return 'a';
+    }
+    return 'b';
+};
+const orderSuggestions = (arr, inputProps, defaultReturnType) => {
+    let value = '';
+    if (inputProps === '') {
+        if (defaultReturnType) {
+            value = defaultReturnType;
+        }
+        else {
+            return arr;
+        }
+    }
+    else {
+        value = inputProps;
+    }
+    const sortedArr = arr.sort(function (a, b) {
+        if (a.data.category === value && b.data.category !== value) {
+            return -1;
+        }
+        else if (a.data.category !== value && b.data.category === value) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    });
+    return sortedArr;
+};
+const defaultReturnTypeFilter = (defaultReturnType, inputProps, category) => {
+    if (inputProps === '' && (!defaultReturnType || category === defaultReturnType)) {
+        return true;
+    }
+    return false;
+};
 const getInputProps = (functionProps) => {
     const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName);
     if (targetAction) {
@@ -135,25 +202,25 @@ const TextScriptEditor = ({ defaultReturnType, onChange, onError, debug = false,
                                     let cursorPos = model.getOffsetAt(position);
                                     const code = model.getValue();
                                     const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1));
-                                    const suggestions = ACTIONS.filter((obj) => obj.data.category === inputProps ||
-                                        (inputProps === '' && (!defaultReturnType || obj.data.category === defaultReturnType)) ||
-                                        (!constantTypes.includes(inputProps) && obj.data.category === 'entity')).map(obj => ({
-                                        label: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                                    const suggestions = ACTIONS.map((obj, orderIdx) => ({
+                                        label: `${obj.key}(${obj.data.fragments.filter((v) => v.type === 'variable').map((v, idx) => {
                                             return `${v.field}:${v.dataType}`;
                                         }).join(', ')}): ${obj.data.category}`,
                                         kind: monaco.languages.CompletionItemKind.Function,
-                                        insertText: `${obj.key}(${obj.data.fragments.filter(v => v.type === 'variable').map((v, idx) => {
+                                        insertText: `${obj.key}(${obj.data.fragments.filter((v) => v.type === 'variable').map((v, idx) => {
                                             return `\${${idx + 1}:${v.field}}`;
                                         }).join(', ')})`,
                                         // TODO: add documentation
-                                        documentation: '',
+                                        sortText: checkSuggestions(obj, inputProps, defaultReturnType),
+                                        documentation: obj.data.fragments.filter((v) => v.type === 'constant')[0]?.text,
                                         insertTextRules: 4,
                                         detail: obj.title,
                                         range,
                                     }));
+                                    console.log(suggestions);
                                     return {
                                         incomplete: true,
-                                        suggestions: [...suggestions],
+                                        suggestions,
                                     };
                                 },
                             });
