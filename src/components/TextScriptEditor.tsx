@@ -45,9 +45,11 @@ const getInputProps = (functionProps: FunctionProps) => {
   if (targetAction) {
     const targetFrag: any = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag && targetFrag.extraData) {
-      return targetFrag.extraData.dataType
-    } else {
-      return targetFrag.dataType
+      if (targetFrag.extraData) {
+        return targetFrag.extraData.dataType
+      } else if (targetFrag.dataType) {
+        return targetFrag
+      }
     }
   }
   return ''
