@@ -6,6 +6,7 @@ import { Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 import parser from 'script-parser'
+import { checkTypeIsValid, findFunctionPos, getActions, getInputProps } from '../utils/actions'
 
 export interface TextScriptErrorProps {
   hash: {
@@ -33,7 +34,7 @@ interface TextScriptEditorProps {
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
 const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
 
-interface FunctionProps {
+export interface FunctionProps {
   functionName: string,
   functionParametersOffset: number
 }
@@ -55,8 +56,14 @@ const equalTypeFilter = (inputProps: string, category: string | undefined) => {
   return false
 }
 
+export const entityEqual = (a: any, b: any) => {
+  if ((!constantTypes.includes(a) && b === 'entity') || (!constantTypes.includes(b) && a === 'entity')) {
+    return true
+  }
+  return false
+}
 
-const extraFilter = (inputProps: string, category: string | undefined) => {
+export const extraFilter = (inputProps: string, category: string | undefined) => {
   if (!constantTypes.includes(inputProps) && category === 'entity') {
     return true
   }
@@ -110,20 +117,6 @@ const defaultReturnTypeFilter = (defaultReturnType: string | undefined, inputPro
   return false
 }
 
-const getInputProps = (functionProps: FunctionProps) => {
-  const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
-  if (targetAction) {
-    const targetFrag: any = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset]
-    if (targetFrag && targetFrag.extraData) {
-      if (targetFrag.extraData) {
-        return targetFrag.extraData.dataType
-      } else if (targetFrag.dataType) {
-        return targetFrag
-      }
-    }
-  }
-  return ''
-}
 
 const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
   let output: FunctionProps =
@@ -144,6 +137,7 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
       searchChar = s[i]
       if (s[i] === ')') {
         searchChar = '('
+        offset += 1
       }
       continue
     }
@@ -159,7 +153,6 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
     } else {
       if (s[i] === ',') {
         output.functionParametersOffset += 1
-        offset += 1
       } else {
         output.functionName = ''
       }
@@ -244,8 +237,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                   let cursorPos = model.getOffsetAt(position);
                   const code = model.getValue();
                   const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
+                  console.log(inputProps)
                   const suggestions: languages.CompletionItem[] =
-                    ACTIONS.map((obj, orderIdx) => ({
+                    getActions().map((obj, orderIdx) => ({
                       label: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
                         return `${v.field}:${v.dataType}`
                       }).join(', ')}): ${obj.data.category}`,
@@ -291,7 +285,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                   const code = model.getValue();
                   let cursorPos = model.getOffsetAt(position);
                   const functionProps = getFunctionProps(code, cursorPos - 1)
-                  const targetAction = ACTIONS.find((obj) => obj.key === functionProps.functionName)
+                  const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
                   const targetFrag: any = targetAction?.data.fragments.filter((frag) => frag.type === 'variable')
                   const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
                     [
@@ -335,6 +329,10 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
 
           // editor.focus()
           editor.setValue(defaultValue)
+          //@ts-ignore, the type define is wrong, editor have onDidType
+          editor.onDidType((v) => {
+            editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
+          })
           editor.onDidChangeCursorPosition((e) => {
             // Monaco tells us the line number after cursor position changed
             if (e.position.lineNumber > 1) {
@@ -353,11 +351,19 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
         onChange={(v) => {
           try {
             const output = parser.parse(v || '')
-            setParseStr(output)
-            onChange?.(output)
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+            if (typeof output === 'object') {
+              const errors = checkTypeIsValid(v || '', output, defaultReturnType)
+              if (errors.length === 0) {
+                setParseStr(output)
+                onChange?.(output)
+              } else {
+                monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+              }
+            }
+
           } catch (e: any) {
-            const error: TextScriptErrorProps = e
+            const error: TextScriptErrorProps | Error = e
             onError?.(e)
             setParseStr(e)
             if (v === '') {
@@ -369,14 +375,30 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
               const model = editor.getModel()
               if (model) {
                 const markers: editor.IMarkerData[] = []
-                markers.push({
-                  message: `expect ${error.hash.expected.join(', ')} here, but got ${error.hash.token}`,
-                  severity: monaco.MarkerSeverity.Error,
-                  startLineNumber: error.hash.loc.first_line,
-                  startColumn: error.hash.loc.first_column,
-                  endLineNumber: error.hash.loc.last_line,
-                  endColumn: error.hash.loc.last_column,
-                });
+                const errorHash = (error as TextScriptErrorProps).hash
+                if (errorHash) {
+                  markers.push({
+                    message: `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`,
+                    severity: monaco.MarkerSeverity.Error,
+                    startLineNumber: errorHash.loc.first_line,
+                    startColumn: errorHash.loc.first_column,
+                    endLineNumber: errorHash.loc.last_line,
+                    endColumn: errorHash.loc.last_column,
+                  });
+                } else {
+                  const code = model.getValue();
+                  const undefinedName = code.replace(' is undefined', '')
+                  const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
+                  markers.push({
+                    message: e.message as string,
+                    severity: monaco.MarkerSeverity.Error,
+                    startLineNumber: 0,
+                    startColumn,
+                    endLineNumber: 0,
+                    endColumn,
+                  }
+                  )
+                }
                 monaco.editor.setModelMarkers(model, 'owner', markers)
               }
             }

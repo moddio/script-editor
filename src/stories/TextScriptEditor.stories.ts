@@ -7,6 +7,7 @@ const meta = {
   title: 'TextScriptEditor',
   component: TextScriptEditor,
   parameters: {
+    
     // Optional parameter to center the component in the Canvas. More info: https://storybook.js.org/docs/react/configure/story-layout
   },
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/react/writing-docs/autodocs
@@ -24,7 +25,7 @@ export const Editor: Story = {
   args: {
     debug: true,
     defaultReturnType: 'unit',
-    onError: () => { },
+    onError: (e) => { console.log(e)},
     onChange: (str) => {console.log(str)}
   }
 };
