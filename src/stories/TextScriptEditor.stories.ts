@@ -26,6 +26,6 @@ export const Editor: Story = {
     debug: true,
     defaultReturnType: 'unit',
     onError: (e) => { console.log(e)},
-    onChange: (str) => {console.log(str)}
+    onSuccess: (str) => {console.log(str)}
   }
 };

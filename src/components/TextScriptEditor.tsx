@@ -27,8 +27,8 @@ interface TextScriptEditorProps {
   debug: boolean,
   defaultValue?: string,
   defaultReturnType?: string,
-  onError?: (e?: Error) => void,
-  onChange?: (parserOutput: string | undefined) => void,
+  onError?: ({ e, output  }: {e: string, output:string | undefined}) => void,
+  onSuccess?: (parserOutput: string | undefined) => void,
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
@@ -162,7 +162,7 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
 }
 
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, onChange, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, onSuccess, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -237,7 +237,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                   let cursorPos = model.getOffsetAt(position);
                   const code = model.getValue();
                   const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
-                  console.log(inputProps)
                   const suggestions: languages.CompletionItem[] =
                     getActions().map((obj, orderIdx) => ({
                       label: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
@@ -356,18 +355,18 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
               const errors = checkTypeIsValid(v || '', output, defaultReturnType)
               if (errors.length === 0) {
                 setParseStr(output)
-                onChange?.(output)
+                onSuccess?.(output)
               } else {
+                onError?.({e: errors.map((error)=> error.message).join('\n'), output})
                 monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
               }
             }
 
           } catch (e: any) {
             const error: TextScriptErrorProps | Error = e
-            onError?.(e)
             setParseStr(e)
             if (v === '') {
-              onChange?.(undefined)
+              onSuccess?.(undefined)
             }
             if (editorRef.current && monacoRef.current) {
               const monaco = monacoRef.current
@@ -377,8 +376,10 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                 const markers: editor.IMarkerData[] = []
                 const errorHash = (error as TextScriptErrorProps).hash
                 if (errorHash) {
+                  const message = `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`
+                  onError?.({e: message, output: undefined})
                   markers.push({
-                    message: `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`,
+                    message,  
                     severity: monaco.MarkerSeverity.Error,
                     startLineNumber: errorHash.loc.first_line,
                     startColumn: errorHash.loc.first_column,
@@ -389,6 +390,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                   const code = model.getValue();
                   const undefinedName = code.replace(' is undefined', '')
                   const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
+                  onError?.({e: e.message as string, output: undefined})
                   markers.push({
                     message: e.message as string,
                     severity: monaco.MarkerSeverity.Error,
