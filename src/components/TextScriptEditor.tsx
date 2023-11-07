@@ -27,7 +27,7 @@ interface TextScriptEditorProps {
   debug: boolean,
   defaultValue?: string,
   defaultReturnType?: string,
-  onError?: ({ e, output  }: {e: string, output:string | undefined}) => void,
+  onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
   onSuccess?: (parserOutput: string | undefined) => void,
 }
 
@@ -357,7 +357,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                 setParseStr(output)
                 onSuccess?.(output)
               } else {
-                onError?.({e: errors.map((error)=> error.message).join('\n'), output})
+                onError?.({ e: errors.map((error) => error.message), output })
                 monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
               }
             }
@@ -377,9 +377,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                 const errorHash = (error as TextScriptErrorProps).hash
                 if (errorHash) {
                   const message = `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`
-                  onError?.({e: message, output: undefined})
+                  onError?.({ e: [message], output: undefined })
                   markers.push({
-                    message,  
+                    message,
                     severity: monaco.MarkerSeverity.Error,
                     startLineNumber: errorHash.loc.first_line,
                     startColumn: errorHash.loc.first_column,
@@ -390,7 +390,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
                   const code = model.getValue();
                   const undefinedName = code.replace(' is undefined', '')
                   const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
-                  onError?.({e: e.message as string, output: undefined})
+                  onError?.({ e: [e.message as string], output: undefined })
                   markers.push({
                     message: e.message as string,
                     severity: monaco.MarkerSeverity.Error,
