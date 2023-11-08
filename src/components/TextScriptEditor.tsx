@@ -1,7 +1,7 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, KEYWORDS } from '../constants/monacoConfig'
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
@@ -170,6 +170,120 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   const disposableRef = useRef<IDisposable[]>([])
+
+  const init = (monaco: Monaco) => {
+    // Register a tokens provider for the language
+    disposableRef.current.push(monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef))
+    // Set the editing configuration for the language
+    disposableRef.current.push(monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration))
+    disposableRef.current.push(monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
+      triggerCharacters,
+      provideCompletionItems: (model, position, context, token) => {
+        let word = model.getWordUntilPosition(position);
+        let range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        let cursorPos = model.getOffsetAt(position);
+        const code = model.getValue();
+        const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
+        const suggestions: languages.CompletionItem[] =
+          getActions().map((obj, orderIdx) => ({
+            label: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+              return `${v.field}:${v.dataType}`
+            }).join(', ')}): ${obj.data.category}`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+              return `\${${idx + 1}:${v.field}}`
+            }).join(', ')})`,
+            // TODO: add documentation
+            sortText: checkSuggestions(obj, inputProps, defaultReturnType),
+            documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
+            insertTextRules: 4,
+            detail: obj.title,
+            range,
+          }))
+        return {
+          incomplete: true,
+          suggestions,
+        }
+      },
+    }))
+    // TODO: finish hover provider
+    // monaco.languages.registerHoverProvider(MODDIOSCRIPT, {
+    //   provideHover: (model, position, token) => {
+    //     const { column, lineNumber } = position;
+
+    //     const word = model.getWordAtPosition(position)?.word
+    //     const contents = model.getLineContent(lineNumber)
+    //     console.log(model, position, token, word, contents)
+    //     return {
+    //       value: 'hello?' || '',
+    //       isTrusted: true,
+    //       supportThemeIcons: true,
+    //       contents: [{
+    //         value: 'hello!',
+    //       }]
+    //     }
+    //   }
+    // })
+    // TODO: finish signatureHelp provider
+    disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
+      signatureHelpTriggerCharacters: triggerCharactersWithNumber,
+      provideSignatureHelp: async (model, position, token, context) => {
+        const code = model.getValue();
+        let cursorPos = model.getOffsetAt(position);
+        const functionProps = getFunctionProps(code, cursorPos - 1)
+        const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
+        const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
+        const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
+          [
+            {
+              label: '',
+              documentation: {
+                value:
+                  `${functionProps.functionName}(${targetFrag?.map((frag: any, idx: number) => (`${idx === functionProps.functionParametersOffset ? '**' : ''}${frag.field}: ${frag.extraData?.dataType || frag.dataType}${idx === functionProps.functionParametersOffset ? '**' : ''}`))})`,
+              },
+
+              parameters:
+                targetFrag.map((frag: any) => ({
+                  label: "",
+                  documentation: frag.filed
+                }))
+            },
+          ];
+
+        return {
+          dispose: () => { },
+          value: {
+            activeParameter: functionProps.functionParametersOffset,
+            activeSignature: 0,
+            signatures,
+          },
+        };
+      }
+    }))
+  }
+
+  useEffect(() => {
+    if (monacoRef.current) {
+      disposableRef.current.map((ref) => {
+        ref.dispose()
+      })
+      init(monacoRef.current)
+    }
+
+  }, [defaultReturnType])
+
+  useEffect(() => {
+    return () => {
+      disposableRef.current.map((ref) => {
+        ref.dispose()
+      })
+    }
+  }, [])
   return (
     <>
       <Editor
@@ -220,108 +334,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
 
         beforeMount={(monaco) => {
           monacoRef.current = monaco
-          disposableRef.current.map((ref) => {
-            ref.dispose()
-          })
-          disposableRef.current = []
           // Register a new language
           monaco.languages.register({ id: MODDIOSCRIPT + idx })
-          monaco.languages.onLanguage(MODDIOSCRIPT + idx, () => {
-            // Register a tokens provider for the language
-            disposableRef.current.push(monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef))
-            // Set the editing configuration for the language
-            disposableRef.current.push(monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration))
-            disposableRef.current.push(monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
-              triggerCharacters,
-              provideCompletionItems: (model, position, context, token) => {
-                let word = model.getWordUntilPosition(position);
-                let range = {
-                  startLineNumber: position.lineNumber,
-                  endLineNumber: position.lineNumber,
-                  startColumn: word.startColumn,
-                  endColumn: word.endColumn,
-                };
-                let cursorPos = model.getOffsetAt(position);
-                const code = model.getValue();
-                const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
-                const suggestions: languages.CompletionItem[] =
-                  getActions().map((obj, orderIdx) => ({
-                    label: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
-                      return `${v.field}:${v.dataType}`
-                    }).join(', ')}): ${obj.data.category}`,
-                    kind: monaco.languages.CompletionItemKind.Function,
-                    insertText: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
-                      return `\${${idx + 1}:${v.field}}`
-                    }).join(', ')})`,
-                    // TODO: add documentation
-                    sortText: checkSuggestions(obj, inputProps, defaultReturnType),
-                    documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
-                    insertTextRules: 4,
-                    detail: obj.title,
-                    range,
-                  }))
-                return {
-                  incomplete: true,
-                  suggestions,
-                }
-              },
-            }))
-            // TODO: finish hover provider
-            // monaco.languages.registerHoverProvider(MODDIOSCRIPT, {
-            //   provideHover: (model, position, token) => {
-            //     const { column, lineNumber } = position;
-
-            //     const word = model.getWordAtPosition(position)?.word
-            //     const contents = model.getLineContent(lineNumber)
-            //     console.log(model, position, token, word, contents)
-            //     return {
-            //       value: 'hello?' || '',
-            //       isTrusted: true,
-            //       supportThemeIcons: true,
-            //       contents: [{
-            //         value: 'hello!',
-            //       }]
-            //     }
-            //   }
-            // })
-            // TODO: finish signatureHelp provider
-            disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
-              signatureHelpTriggerCharacters: triggerCharactersWithNumber,
-              provideSignatureHelp: async (model, position, token, context) => {
-                const code = model.getValue();
-                let cursorPos = model.getOffsetAt(position);
-                const functionProps = getFunctionProps(code, cursorPos - 1)
-                const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
-                const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
-                const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
-                  [
-                    {
-                      label: '',
-                      documentation: {
-                        value:
-                          `${functionProps.functionName}(${targetFrag?.map((frag: any, idx: number) => (`${idx === functionProps.functionParametersOffset ? '**' : ''}${frag.field}: ${frag.extraData?.dataType || frag.dataType}${idx === functionProps.functionParametersOffset ? '**' : ''}`))})`,
-                      },
-
-                      parameters:
-                        targetFrag.map((frag: any) => ({
-                          label: "",
-                          documentation: frag.filed
-                        }))
-                    },
-                  ];
-
-                return {
-                  dispose: () => { },
-                  value: {
-                    activeParameter: functionProps.functionParametersOffset,
-                    activeSignature: 0,
-                    signatures,
-                  },
-                };
-              }
-            }))
-          })
-
+          init(monaco)
         }}
         onMount={editor => {
           editorRef.current = editor
