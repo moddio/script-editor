@@ -3,21 +3,24 @@ import { ACTIONS } from "../constants/tmp"
 import { FunctionProps, entityEqual } from "../components/TextScriptEditor"
 import { editor } from "monaco-editor"
 import { Editor, Monaco } from '@monaco-editor/react'
+import axios from 'axios'
 
 export interface ColumnRange {
   startColumn: number,
   endColumn: number
 }
 
+const res = await axios.get('https://www.modd.io/api/editor-api/?game=two-houses')
+let actionsCache: any[] = res.data.message
+
 export const getActions = () => {
-  // TODO: use this for now, next time we can use axios to get the remote actions.json
-  return ACTIONS
+  return actionsCache
 }
 
 export const getReturnType = (functionName: string) => {
   let returnType: string | undefined
   const actions = getActions()
-  returnType = actions.find(action => action.key === functionName)?.data.category
+  returnType = getActions().find(action => action.key === functionName)?.data.category
   if (functionName === 'calculate') {
     return 'number'
   }
@@ -27,7 +30,7 @@ export const getReturnType = (functionName: string) => {
 export const getInputProps = (functionProps: FunctionProps) => {
   const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
   if (targetAction) {
-    const targetFrag: any = targetAction.data.fragments.filter((frag) => frag.type === 'variable')[functionProps.functionParametersOffset]
+    const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag) {
       if (targetFrag.extraData) {
         return targetFrag.extraData.dataType

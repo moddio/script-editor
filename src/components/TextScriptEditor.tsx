@@ -25,6 +25,7 @@ export interface TextScriptErrorProps {
 }
 interface TextScriptEditorProps {
   debug: boolean,
+  idx: number,
   defaultValue?: string,
   defaultReturnType?: string,
   onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
@@ -162,14 +163,14 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
 }
 
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, onSuccess, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   return (
     <>
       <Editor
-        language={MODDIOSCRIPT}
+        language={MODDIOSCRIPT + idx}
         height="1.5rem"
         theme="vs-dark"
         options={{
@@ -217,13 +218,13 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
         beforeMount={(monaco) => {
           monacoRef.current = monaco
           // Register a new language
-          monaco.languages.register({ id: MODDIOSCRIPT })
-          monaco.languages.onLanguage(MODDIOSCRIPT, () => {
+          monaco.languages.register({ id: MODDIOSCRIPT + idx })
+          monaco.languages.onLanguage(MODDIOSCRIPT + idx, () => {
             // Register a tokens provider for the language
-            monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT, languageDef)
+            monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef)
             // Set the editing configuration for the language
-            monaco.languages.setLanguageConfiguration(MODDIOSCRIPT, configuration)
-            monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT, {
+            monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration)
+            monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
               triggerCharacters,
               provideCompletionItems: (model, position, context, token) => {
                 let word = model.getWordUntilPosition(position);
@@ -277,14 +278,14 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
             //   }
             // })
             // TODO: finish signatureHelp provider
-            monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
+            monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
               signatureHelpTriggerCharacters: triggerCharactersWithNumber,
               provideSignatureHelp: async (model, position, token, context) => {
                 const code = model.getValue();
                 let cursorPos = model.getOffsetAt(position);
                 const functionProps = getFunctionProps(code, cursorPos - 1)
                 const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
-                const targetFrag: any = targetAction?.data.fragments.filter((frag) => frag.type === 'variable')
+                const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
                 const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
                   [
                     {
@@ -349,11 +350,11 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ defaultReturnType, 
         onChange={(v) => {
           try {
             const output = parser.parse(v || '')
+            setParseStr(output)
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
             if (typeof output === 'object') {
               const errors = checkTypeIsValid(v || '', output, defaultReturnType)
               if (errors.length === 0) {
-                setParseStr(output)
                 onSuccess?.(output)
               } else {
                 onError?.({ e: errors.map((error) => error.message), output })

@@ -1,10 +1,17 @@
 import TextScriptEditor from "../components/TextScriptEditor";
 
-export const CombinedComp: React.FC<{}> = () => {
+interface CombinedCompProps {
+    defaultReturnTypes: string[]
+}
+
+export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }) => {
     return (
         <div>
-            <TextScriptEditor debug={true}/>
-            <TextScriptEditor debug={true} />
+            {defaultReturnTypes.map((type, idx) => {
+                return (
+                    <TextScriptEditor idx={idx} defaultReturnType={type} debug={true} />
+                )
+            })}
         </div>
     );
 }
