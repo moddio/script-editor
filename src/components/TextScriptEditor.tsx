@@ -2,7 +2,7 @@ import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, KEYWORDS } from '../constants/monacoConfig'
 import React, { useRef, useState } from 'react'
-import { Position, editor, languages } from 'monaco-editor'
+import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 import parser from 'script-parser'
@@ -169,6 +169,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
+  const disposableRef = useRef<IDisposable[]>([])
   return (
     <>
       <Editor
@@ -219,14 +220,18 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
 
         beforeMount={(monaco) => {
           monacoRef.current = monaco
+          disposableRef.current.map((ref) => {
+            ref.dispose()
+          })
+          disposableRef.current = []
           // Register a new language
           monaco.languages.register({ id: MODDIOSCRIPT + idx })
           monaco.languages.onLanguage(MODDIOSCRIPT + idx, () => {
             // Register a tokens provider for the language
-            monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef)
+            disposableRef.current.push(monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef))
             // Set the editing configuration for the language
-            monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration)
-            monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
+            disposableRef.current.push(monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration))
+            disposableRef.current.push(monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
               triggerCharacters,
               provideCompletionItems: (model, position, context, token) => {
                 let word = model.getWordUntilPosition(position);
@@ -260,7 +265,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   suggestions,
                 }
               },
-            })
+            }))
             // TODO: finish hover provider
             // monaco.languages.registerHoverProvider(MODDIOSCRIPT, {
             //   provideHover: (model, position, token) => {
@@ -280,7 +285,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             //   }
             // })
             // TODO: finish signatureHelp provider
-            monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
+            disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
               signatureHelpTriggerCharacters: triggerCharactersWithNumber,
               provideSignatureHelp: async (model, position, token, context) => {
                 const code = model.getValue();
@@ -314,7 +319,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   },
                 };
               }
-            });
+            }))
           })
 
         }}
