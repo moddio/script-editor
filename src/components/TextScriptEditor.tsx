@@ -57,15 +57,17 @@ const equalTypeFilter = (inputProps: string, category: string | undefined) => {
   return false
 }
 
+const multiTypes = ['entity', 'Multiple']
+
 export const entityEqual = (a: any, b: any) => {
-  if ((!constantTypes.includes(a) && b === 'entity') || (!constantTypes.includes(b) && a === 'entity')) {
+  if ((!constantTypes.includes(a) && multiTypes.includes(b)) || (!constantTypes.includes(b) && multiTypes.includes(a))) {
     return true
   }
   return false
 }
 
 export const extraFilter = (inputProps: string, category: string | undefined) => {
-  if (!constantTypes.includes(inputProps) && category === 'entity') {
+  if (!constantTypes.includes(inputProps) && category && multiTypes.includes(category)) {
     return true
   }
   return false
@@ -348,62 +350,66 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           })
         }}
         onChange={(v) => {
-          try {
-            const output = parser.parse(v || '')
-            setParseStr(output)
+          if (v === '') {
+            onSuccess?.(undefined)
+            setParseStr('')
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-            if (typeof output === 'object') {
-              const errors = checkTypeIsValid(v || '', output, defaultReturnType)
-              if (errors.length === 0) {
-                onSuccess?.(output)
-              } else {
-                onError?.({ e: errors.map((error) => error.message), output })
-                monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+          } else {
+            try {
+              const output = parser.parse(v || '')
+              setParseStr(output)
+              monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+              if (typeof output === 'object') {
+                const errors = checkTypeIsValid(v || '', output, defaultReturnType)
+                if (errors.length === 0) {
+                  onSuccess?.(output)
+                } else {
+                  onError?.({ e: errors.map((error) => error.message), output })
+                  monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+                }
+              }
+
+            } catch (e: any) {
+              const error: TextScriptErrorProps | Error = e
+              setParseStr(e)
+              if (editorRef.current && monacoRef.current) {
+                const monaco = monacoRef.current
+                const editor = editorRef.current
+                const model = editor.getModel()
+                if (model) {
+                  const markers: editor.IMarkerData[] = []
+                  const errorHash = (error as TextScriptErrorProps).hash
+                  if (errorHash) {
+                    const message = `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`
+                    onError?.({ e: [message], output: undefined })
+                    markers.push({
+                      message,
+                      severity: monaco.MarkerSeverity.Error,
+                      startLineNumber: errorHash.loc.first_line,
+                      startColumn: errorHash.loc.first_column,
+                      endLineNumber: errorHash.loc.last_line,
+                      endColumn: errorHash.loc.last_column,
+                    });
+                  } else {
+                    const code = model.getValue();
+                    const undefinedName = code.replace(' is undefined', '')
+                    const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
+                    onError?.({ e: [e.message as string], output: undefined })
+                    markers.push({
+                      message: e.message as string,
+                      severity: monaco.MarkerSeverity.Error,
+                      startLineNumber: 0,
+                      startColumn,
+                      endLineNumber: 0,
+                      endColumn,
+                    }
+                    )
+                  }
+                  monaco.editor.setModelMarkers(model, 'owner', markers)
+                }
               }
             }
 
-          } catch (e: any) {
-            const error: TextScriptErrorProps | Error = e
-            setParseStr(e)
-            if (v === '') {
-              onSuccess?.(undefined)
-            }
-            if (editorRef.current && monacoRef.current) {
-              const monaco = monacoRef.current
-              const editor = editorRef.current
-              const model = editor.getModel()
-              if (model) {
-                const markers: editor.IMarkerData[] = []
-                const errorHash = (error as TextScriptErrorProps).hash
-                if (errorHash) {
-                  const message = `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`
-                  onError?.({ e: [message], output: undefined })
-                  markers.push({
-                    message,
-                    severity: monaco.MarkerSeverity.Error,
-                    startLineNumber: errorHash.loc.first_line,
-                    startColumn: errorHash.loc.first_column,
-                    endLineNumber: errorHash.loc.last_line,
-                    endColumn: errorHash.loc.last_column,
-                  });
-                } else {
-                  const code = model.getValue();
-                  const undefinedName = code.replace(' is undefined', '')
-                  const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
-                  onError?.({ e: [e.message as string], output: undefined })
-                  markers.push({
-                    message: e.message as string,
-                    severity: monaco.MarkerSeverity.Error,
-                    startLineNumber: 0,
-                    startColumn,
-                    endLineNumber: 0,
-                    endColumn,
-                  }
-                  )
-                }
-                monaco.editor.setModelMarkers(model, 'owner', markers)
-              }
-            }
           }
 
         }}
