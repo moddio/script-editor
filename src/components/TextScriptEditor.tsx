@@ -151,7 +151,7 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
         offset -= 1
       }
     }
-    if (/^[a-zA-Z]+$/.test(s[i])) {
+    if (/^[a-zA-Z0-9_]+$/.test(s[i])) {
       output.functionName = s[i] + output.functionName
     } else {
       if (s[i] === ',') {

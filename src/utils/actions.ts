@@ -29,7 +29,7 @@ export const getReturnType = (functionName: string) => {
 }
 
 export const getInputProps = (functionProps: FunctionProps) => {
-  const targetAction = getActions().find((obj) => aliasTable[obj.key] ?? obj.key === functionProps.functionName)
+  const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)  
   if (targetAction) {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag) {
