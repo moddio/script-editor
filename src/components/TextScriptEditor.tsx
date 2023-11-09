@@ -236,7 +236,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const code = model.getValue();
         let cursorPos = model.getOffsetAt(position);
         const functionProps = getFunctionProps(code, cursorPos - 1)
-        const targetAction = getActions().find((obj) => aliasTable[obj.key] ?? obj.key === functionProps.functionName)
+        const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
         const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
           [
