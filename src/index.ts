@@ -1,4 +1,5 @@
+import { aliasTable } from "script-parser"
 import TextScriptEditor from "./components/TextScriptEditor"
-// import './index.css'
-// import 'bootstrap/dist/css/bootstrap.css';
-export default TextScriptEditor
+
+// eslint-disable-next-line import/no-anonymous-default-export
+export default { TextScriptEditor, aliasTable }

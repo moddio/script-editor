@@ -28,7 +28,7 @@ specifiers:
   react: ^18.2.0
   react-dom: ^18.2.0
   react-scripts: 5.0.1
-  script-parser: ^0.0.7
+  script-parser: ^0.0.12
   storybook: 7.5.0
   style-loader: ^3.3.3
   tailwindcss: ^3.3.3
@@ -50,7 +50,7 @@ dependencies:
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   react-scripts: 5.0.1_mb36cggc7r6cvlihqxvjc2swfy
-  script-parser: 0.0.7
+  script-parser: 0.0.12
   typescript: 5.2.2
   web-vitals: 2.1.4
 
@@ -12222,8 +12222,8 @@ packages:
       ajv-formats: 2.1.1
       ajv-keywords: 5.1.0_ajv@8.12.0
 
-  /script-parser/0.0.7:
-    resolution: {integrity: sha512-JMjOP3Tj6P5s0d1TWHP3JpzjaxAtgwZW4kOMxq+o5NSFnt6KF+IFC5lXSi1vIrekMZHs4XhefwvC2cPKdn2ubQ==}
+  /script-parser/0.0.12:
+    resolution: {integrity: sha512-B7WRZo9EHPdkm8ro/DZ8KKW8V2fOfmCVfB77BVQTmouZwgb6ZwB8DrBiZR5HiqhQVJhRDJdg64/f8PkoWbUSFw==}
     dependencies:
       '@ts-jison/lexer': 0.4.1-alpha.1
       '@ts-jison/parser': 0.4.1-alpha.1

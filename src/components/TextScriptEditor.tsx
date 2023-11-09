@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
-import parser from 'script-parser'
+import { aliasTable, parser } from 'script-parser'
 import { checkTypeIsValid, findFunctionPos, getActions, getInputProps } from '../utils/actions'
 
 export interface TextScriptErrorProps {
@@ -191,11 +191,11 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
         const suggestions: languages.CompletionItem[] =
           getActions().map((obj, orderIdx) => ({
-            label: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key] ?? obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
             }).join(', ')}): ${obj.data.category}`,
             kind: monaco.languages.CompletionItemKind.Function,
-            insertText: `${obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            insertText: `${aliasTable[obj.key] ?? obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
             }).join(', ')})`,
             // TODO: add documentation
@@ -236,7 +236,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const code = model.getValue();
         let cursorPos = model.getOffsetAt(position);
         const functionProps = getFunctionProps(code, cursorPos - 1)
-        const targetAction = getActions().find((obj) => obj.key === functionProps.functionName)
+        const targetAction = getActions().find((obj) => aliasTable[obj.key] ?? obj.key === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
         const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
           [
