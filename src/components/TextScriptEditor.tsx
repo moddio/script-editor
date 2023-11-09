@@ -388,7 +388,21 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
                 }
               } else {
-                onSuccess?.(output)
+                if (typeof output !== defaultReturnType) {
+                  const message = `expect ${defaultReturnType} here, but got ${typeof output}`
+                  onError?.({ e: [message], output: undefined })
+                  monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+                    message,
+                    severity: 8,
+                    startLineNumber: 0,
+                    startColumn: 0,
+                    endLineNumber: 0,
+                    endColumn: v?.length || 0,
+                  }])
+                } else {
+                  onSuccess?.(output)
+                  monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+                }
               }
 
             } catch (e: any) {
