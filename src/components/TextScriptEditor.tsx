@@ -387,6 +387,8 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   onError?.({ e: errors.map((error) => error.message), output })
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
                 }
+              } else {
+                onSuccess?.(output)
               }
 
             } catch (e: any) {
