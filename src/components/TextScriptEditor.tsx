@@ -316,6 +316,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
       })
     }
   }, [])
+  
   return (
     <>
       <Editor
@@ -436,7 +437,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
                 }
               }
-
             } catch (e: any) {
               const error: TextScriptErrorProps | Error = e
               setParseStr(e)
@@ -477,9 +477,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                 }
               }
             }
-
           }
-
         }}
       />
       {debug && (
