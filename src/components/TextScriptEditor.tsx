@@ -164,6 +164,37 @@ const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
   return output;
 }
 
+const checkIsWrappedInQuotes = (s: string, pos: number) => {
+  let searchChar = ''
+  for (let i = 0; i < s.length; i++) {
+    if (searchChar !== '') {
+      if (pos <= i) {
+        return true
+      }
+      if (s[i] === searchChar) {
+        searchChar = ''
+      }
+      continue
+    }
+    if (s[i] === '"' || s[i] === "'") {
+      searchChar = s[i]
+    }
+  }
+  return false
+}
+
+const checkIsFunction = (s: string, pos: number) => {
+  let blacklistChars = ['(', '"', "'", ")"]
+  for (let i = pos; i > 0; i--) {
+    if (blacklistChars.includes(s[i])) {
+      return true
+    }
+    if (s[i] === '.') {
+      return false
+    }
+  }
+  return true
+}
 
 const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
@@ -188,16 +219,17 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         };
         let cursorPos = model.getOffsetAt(position);
         const code = model.getValue();
+        const isFunction = checkIsFunction(code, cursorPos - 1)
         const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
-        const suggestions: languages.CompletionItem[] =
+        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, cursorPos - 1) ? [] :
           getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key] ?? obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key] ?? obj.key}${isFunction ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
-            }).join(', ')}): ${obj.data.category}`,
-            kind: monaco.languages.CompletionItemKind.Function,
-            insertText: `${aliasTable[obj.key] ?? obj.key}(${obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            }).join(', ') : ''}${isFunction ? ')' : ''}: ${obj.data.category}`,
+            kind: isFunction ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
+            insertText: `${aliasTable[obj.key] ?? obj.key}${isFunction ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
-            }).join(', ')})`,
+            }).join(', ') : ''}${isFunction ? ')' : ''}`,
             // TODO: add documentation
             sortText: checkSuggestions(obj, inputProps, defaultReturnType),
             documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
