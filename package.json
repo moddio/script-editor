@@ -1,6 +1,6 @@
 {
   "name": "script-editor",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "main": "dist/index.js",
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
@@ -27,7 +27,8 @@
   "scripts": {
     "build": "npx rimraf dist && npx tsc -p tsconfig.json",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "publish": "pnpm add script-parser@latest && npx auto-version --patch && pnpm publish"
   },
   "eslintConfig": {
     "extends": [
@@ -59,6 +60,7 @@
     "@storybook/react": "7.5.0",
     "@storybook/react-webpack5": "7.5.0",
     "@storybook/testing-library": "0.2.2",
+    "auto-version-js": "^0.3.10",
     "babel-plugin-named-exports-order": "0.0.2",
     "css-loader": "^6.8.1",
     "eslint-plugin-storybook": "^0.6.15",
