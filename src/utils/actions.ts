@@ -1,10 +1,11 @@
 import { AnyObject } from "../constants/types"
 import { ACTIONS } from "../constants/tmp"
-import { FunctionProps, entityEqual } from "../components/TextScriptEditor"
+import { FunctionProps } from "../components/TextScriptEditor"
 import { editor } from "monaco-editor"
 import { Editor, Monaco } from '@monaco-editor/react'
 import axios from 'axios'
 import { aliasTable } from "script-parser"
+import { KEYWORDS } from "constants/monacoConfig"
 
 export interface ColumnRange {
   startColumn: number,
@@ -13,6 +14,11 @@ export interface ColumnRange {
 
 const res = await axios.get('https://www.modd.io/api/editor-api/?game=two-houses')
 let actionsCache: any[] = res.data.message
+
+
+export const hasDefaultSuggestions = () => {
+  
+}
 
 export const getActions = () => {
   return actionsCache
@@ -131,4 +137,160 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
     }
   })
   return ranges;
+}
+
+const searchChars = ['"', "'", ")"]
+const constantTypes = ['string', 'number', 'boolean']
+const multiTypes = ['entity', 'Multiple']
+
+export const filterPipe = (defaultReturnType: string | undefined, inputProps: string, category: string | undefined) => {
+  return equalTypeFilter(inputProps, category) ||
+    defaultReturnTypeFilter(defaultReturnType, inputProps, category) ||
+    extraFilter(inputProps, category)
+}
+
+export const equalTypeFilter = (inputProps: string, category: string | undefined) => {
+  if (inputProps === category) {
+    return true
+  }
+  return false
+}
+
+
+
+export const entityEqual = (a: any, b: any) => {
+  if ((!constantTypes.includes(a) && multiTypes.includes(b)) || (!constantTypes.includes(b) && multiTypes.includes(a))) {
+    return true
+  }
+  return false
+}
+
+export const extraFilter = (inputProps: string, category: string | undefined) => {
+  if (!constantTypes.includes(inputProps) && category && multiTypes.includes(category)) {
+    return true
+  }
+  return false
+}
+
+export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType: string | undefined) => {
+  let value = ''
+  if (inputProps === '') {
+    if (defaultReturnType) {
+      value = defaultReturnType
+    } else {
+      return 'b'
+    }
+  } else {
+    value = inputProps
+  }
+  if (obj.data.category === value) {
+    return 'a'
+  }
+  return 'b'
+}
+
+export const orderSuggestions = (arr: any[], inputProps: string, defaultReturnType: string | undefined) => {
+  let value = ''
+  if (inputProps === '') {
+    if (defaultReturnType) {
+      value = defaultReturnType
+    } else {
+      return arr
+    }
+  } else {
+    value = inputProps
+  }
+  const sortedArr = arr.sort(function (a, b) {
+    if (a.data.category === value && b.data.category !== value) {
+      return -1;
+    } else if (a.data.category !== value && b.data.category === value) {
+      return 1;
+    } else {
+      return 0;
+    }
+  });
+  return sortedArr
+}
+
+export const defaultReturnTypeFilter = (defaultReturnType: string | undefined, inputProps: string, category: string | undefined) => {
+  if (inputProps === '' && (!defaultReturnType || category === defaultReturnType)) {
+    return true
+  }
+  return false
+}
+
+
+export const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
+  let output: FunctionProps =
+  {
+    functionName: "",
+    functionParametersOffset: 0
+  }
+  let offset = 0;
+  let searchChar = '';
+  for (let i = cursorPos; i >= 0; i--) {
+    if (searchChar !== '') {
+      if (s[i] === searchChar) {
+        searchChar = ''
+      }
+      continue
+    }
+    if (searchChars.includes(s[i])) {
+      searchChar = s[i]
+      if (s[i] === ')') {
+        searchChar = '('
+        offset += 1
+      }
+      continue
+    }
+    if (KEYWORDS.includes(output.functionName)) {
+      if (offset === 0) {
+        return output
+      } else {
+        offset -= 1
+      }
+    }
+    if (/^[a-zA-Z0-9_]+$/.test(s[i])) {
+      output.functionName = s[i] + output.functionName
+    } else {
+      if (s[i] === ',') {
+        output.functionParametersOffset += 1
+      } else {
+        output.functionName = ''
+      }
+    }
+  }
+  return output;
+}
+
+export const checkIsWrappedInQuotes = (s: string, pos: number) => {
+  let searchChar = ''
+  for (let i = 0; i < s.length; i++) {
+    if (searchChar !== '') {
+      if (pos <= i) {
+        return true
+      }
+      if (s[i] === searchChar) {
+        searchChar = ''
+      }
+      continue
+    }
+    if (s[i] === '"' || s[i] === "'") {
+      searchChar = s[i]
+    }
+  }
+  return false
+}
+
+export const checkIsFunction = (s: string, pos: number) => {
+  let blacklistChars = ['(', '"', "'", ")"]
+  for (let i = pos; i > 0; i--) {
+    if (blacklistChars.includes(s[i])) {
+      return true
+    }
+    if (s[i] === '.') {
+      return false
+    }
+  }
+  return true
 }
