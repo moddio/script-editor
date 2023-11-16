@@ -1,6 +1,6 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
-import { languageDef, configuration, KEYWORDS } from '../constants/monacoConfig'
+import { languageDef, configuration, KEYWORDS, OPTIONS } from '../constants/monacoConfig'
 import React, { useEffect, useRef, useState } from 'react'
 import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
@@ -316,55 +316,14 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
       })
     }
   }, [])
-  
+
   return (
     <>
       <Editor
         language={MODDIOSCRIPT + idx}
         height="1.5rem"
         theme="vs-dark"
-        options={{
-          renderLineHighlight: "none",
-          quickSuggestions: true,
-          glyphMargin: false,
-          lineDecorationsWidth: 0,
-          folding: false,
-          fixedOverflowWidgets: false,
-          acceptSuggestionOnEnter: "on",
-          hover: {
-            delay: 100,
-          },
-          roundedSelection: false,
-          contextmenu: false,
-          cursorStyle: "line-thin",
-          occurrencesHighlight: false,
-          links: false,
-          minimap: { enabled: false },
-          // see: https://github.com/microsoft/monaco-editor/issues/1746
-          wordBasedSuggestions: true,
-          // disable `Find`
-          find: {
-            addExtraSpaceOnTop: false,
-            autoFindInSelection: "never",
-            seedSearchStringFromSelection: "never",
-          },
-          fontSize: 16,
-          fontWeight: "normal",
-          wordWrap: "off",
-          lineNumbers: "off",
-          lineNumbersMinChars: 0,
-          overviewRulerLanes: 0,
-          overviewRulerBorder: false,
-          hideCursorInOverviewRuler: true,
-          scrollBeyondLastColumn: 0,
-          scrollbar: {
-            horizontal: "hidden",
-            vertical: "hidden",
-            // avoid can not scroll page when hover monaco
-            alwaysConsumeMouseWheel: false,
-          },
-        }}
-
+        options={OPTIONS}
         beforeMount={(monaco) => {
           monacoRef.current = monaco
           // Register a new language
@@ -400,6 +359,10 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                 lineNumber: 1,
               });
             }
+          })
+          editor.onDidFocusEditorText(() => {
+            editor.trigger('anything', 'editor.action.triggerSuggest', () => { })
+            editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
           })
         }}
         onChange={(v) => {
