@@ -5,7 +5,7 @@ import { editor, languages } from "monaco-editor"
 import { Editor, Monaco } from '@monaco-editor/react'
 import axios from 'axios'
 import { aliasTable } from "script-parser"
-import { KEYWORDS } from "constants/monacoConfig"
+import { KEYWORDS } from "../constants/monacoConfig"
 
 export interface ColumnRange {
   startColumn: number,
