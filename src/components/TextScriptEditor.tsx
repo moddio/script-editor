@@ -28,6 +28,7 @@ interface TextScriptEditorProps {
   idx: number,
   defaultValue?: string,
   defaultReturnType?: string,
+  extraSuggestions?: languages.CompletionItem[],
   onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
   onSuccess?: (parserOutput: string | undefined) => void,
 }
@@ -40,7 +41,7 @@ export interface FunctionProps {
   functionParametersOffset: number
 }
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, debug = false, defaultValue = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, extraSuggestions, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -81,9 +82,12 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             detail: obj.title,
             range,
           }))
+        extraSuggestions?.map((suggestion) => {
+          suggestion.range = range
+        })
         return {
           incomplete: true,
-          suggestions,
+          suggestions: extraSuggestions ? extraSuggestions.concat(suggestions) : suggestions,
         }
       },
     }))

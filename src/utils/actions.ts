@@ -1,7 +1,7 @@
 import { AnyObject } from "../constants/types"
 import { ACTIONS } from "../constants/tmp"
 import { FunctionProps } from "../components/TextScriptEditor"
-import { editor } from "monaco-editor"
+import { editor, languages } from "monaco-editor"
 import { Editor, Monaco } from '@monaco-editor/react'
 import axios from 'axios'
 import { aliasTable } from "script-parser"
@@ -16,8 +16,8 @@ const res = await axios.get('https://www.modd.io/api/editor-api/?game=two-houses
 let actionsCache: any[] = res.data.message
 
 
-export const hasDefaultSuggestions = () => {
-  
+export const hasDefaultSuggestions = (suggestions: languages.CompletionItem[]) => {
+
 }
 
 export const getActions = () => {
@@ -178,15 +178,15 @@ export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType
     if (defaultReturnType) {
       value = defaultReturnType
     } else {
-      return 'b'
+      return 'c'
     }
   } else {
     value = inputProps
   }
   if (obj.data.category === value) {
-    return 'a'
+    return 'b'
   }
-  return 'b'
+  return 'c'
 }
 
 export const orderSuggestions = (arr: any[], inputProps: string, defaultReturnType: string | undefined) => {
