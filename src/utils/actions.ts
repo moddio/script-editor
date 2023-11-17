@@ -40,7 +40,12 @@ export const getInputProps = (functionProps: FunctionProps) => {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag) {
       if (targetFrag.extraData) {
-        return targetFrag.extraData.dataType
+        if (targetFrag.extraData.dataType) {
+          return targetFrag.extraData.dataType
+        } else if (targetFrag.extraData.dataTypes) {
+          return targetFrag.extraData.dataTypes
+        }
+
       } else if (targetFrag.dataType) {
         return targetFrag.dataType
       }
@@ -117,26 +122,28 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   }
   Object.keys(obj).filter(key => !inValidKeys.includes(key)).map((key, idx) => {
     const nestedObj = obj[key]
+
     const inputType = getInputProps({ functionName: functionName, functionParametersOffset: idx })
-    if (typeof nestedObj === 'object' ) {
-      if(!Array.isArray(nestedObj)) {
-        ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
-      } else {
-        // TODO
-      }
+    console.log(functionName, idx, inputType)
+    if (typeof nestedObj === 'object') {
+      ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
     } else {
       if (typeof nestedObj !== inputType || entityEqual(typeof nestedObj, inputType)) {
-        const { startColumn, endColumn } = findParametersPos(s, functionName, idx)
-        ranges.push(
-          {
-            message: `expect ${inputType} here, but got ${typeof nestedObj}`,
-            severity: 8,
-            startLineNumber: 0,
-            startColumn,
-            endLineNumber: 0,
-            endColumn,
-          }
-        )
+        console.log(inputType, typeof nestedObj)
+        if (Array.isArray(inputType) && inputType.includes(typeof nestedObj)) {
+        } else {
+          const { startColumn, endColumn } = findParametersPos(s, functionName, idx)
+          ranges.push(
+            {
+              message: `expect ${inputType} here, but got ${typeof nestedObj}`,
+              severity: 8,
+              startLineNumber: 0,
+              startColumn,
+              endLineNumber: 0,
+              endColumn,
+            }
+          )
+        }
       }
     }
   })
