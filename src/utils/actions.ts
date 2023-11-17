@@ -124,12 +124,10 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
     const nestedObj = obj[key]
 
     const inputType = getInputProps({ functionName: functionName, functionParametersOffset: idx })
-    console.log(functionName, idx, inputType)
     if (typeof nestedObj === 'object') {
       ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
     } else {
       if (typeof nestedObj !== inputType || entityEqual(typeof nestedObj, inputType)) {
-        console.log(inputType, typeof nestedObj)
         if (Array.isArray(inputType) && inputType.includes(typeof nestedObj)) {
         } else {
           const { startColumn, endColumn } = findParametersPos(s, functionName, idx)
