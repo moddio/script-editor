@@ -155,7 +155,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
       init(monacoRef.current)
     }
 
-  }, [defaultReturnType])
+  }, [defaultReturnType, extraSuggestions])
 
   useEffect(() => {
     return () => {
@@ -188,32 +188,70 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             }
           });
 
-          // editor.focus()
           editor.setValue(defaultValue)
           //@ts-ignore, the type define is wrong, editor have onDidType
           editor.onDidType((v) => {
             editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
           })
-          editor.onDidChangeCursorPosition((e) => {
-            // Monaco tells us the line number after cursor position changed
-            if (e.position.lineNumber > 1) {
-              const updatedValue = editor.getValue().trim().replace(/\n/g, ' ')
-              editor.setValue(updatedValue);
-              // Bring back the cursor to the end of the first line
-              editor.setPosition({
-                ...e.position,
-                // Setting column to Infinity would mean the end of the line
-                column: Infinity,
-                lineNumber: 1,
-              });
-            }
+          // disable `Find` widget
+          // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
+          editor.addCommand(monacoRef.current!.KeyMod.CtrlCmd | monacoRef.current!.KeyCode.KeyF, () => { })
+          editor.addCommand(monacoRef.current!.KeyMod.CtrlCmd | monacoRef.current!.KeyCode.KeyH, () => { })
+
+          // disable press `Enter` in case of producing line breaks
+          editor.addCommand(monacoRef.current!.KeyCode.Enter, () => {
+            // State: https://github.com/microsoft/vscode/blob/1.56.0/src/vs/editor/contrib/suggest/suggestWidget.ts#L50
+
+            /**
+             * Origin purpose: disable line breaks
+             * Side Effect: If defining completions, will prevent `Enter` confirm selection
+             * Side Effect Solution: always accept selected suggestion when `Enter`
+             *
+             * But it is hard to find out the name `acceptSelectedSuggestion` to trigger.
+             *
+             * Where to find the `acceptSelectedSuggestion` at monaco official documents ?
+             * Below is some refs:
+             * - https://stackoverflow.com/questions/64430041/get-a-list-of-monaco-commands-actions-ids
+             * - command from: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/contrib/suggest/suggestController.ts#L632-L638
+             * - https://github.com/microsoft/vscode/search?q=registerEditorCommand
+             * - real list: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/browser/editorExtensions.ts#L611
+             *
+             *
+             * Finally, `acceptSelectedSuggestion` appears here:
+             * - `editorExtensions.js` Line 288
+             */
+            editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
           })
+
+          // deal with user paste
+          // see: https://github.com/microsoft/monaco-editor/issues/2009#issue-63987720
+          editor.onDidPaste((e) => {
+            // multiple rows will be merged to single row
+            if (e.range.endColumn <= 1) {
+              return
+            }
+            let newContent = ''
+            const textModel = editor.getModel() as editor.ITextModel
+            const lineCount = textModel.getLineCount()
+            // remove all line breaks
+            for (let i = 0; i < lineCount; i += 1) {
+              newContent += `${textModel.getLineContent(i + 1)}${i !== lineCount - 1 ? ' ' : ''}`
+            }
+            textModel.setValue(newContent)
+            editor.setPosition({ column: newContent.length + 2, lineNumber: 1 })
+          })
+
+          // disable `F1` command palette
+          editor.addCommand(monacoRef.current!.KeyCode.F1, () => { })
+          // disable `SHIFT+ENTER` insert new line
+          editor.addCommand(1024 | monacoRef.current!.KeyCode.Enter, () => { })
           editor.onDidFocusEditorText(() => {
             editor.trigger('anything', 'editor.action.triggerSuggest', () => { })
             editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
           })
         }}
         onChange={(v) => {
+          // Bring back the cursor to the end of the first line
           if (v === '') {
             onSuccess?.(undefined)
             setParseStr('')
