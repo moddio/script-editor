@@ -35,7 +35,7 @@ export const getReturnType = (functionName: string) => {
 }
 
 export const getInputProps = (functionProps: FunctionProps) => {
-  const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)  
+  const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
   if (targetAction) {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag) {
@@ -118,8 +118,12 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   Object.keys(obj).filter(key => !inValidKeys.includes(key)).map((key, idx) => {
     const nestedObj = obj[key]
     const inputType = getInputProps({ functionName: functionName, functionParametersOffset: idx })
-    if (typeof nestedObj === 'object') {
-      ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
+    if (typeof nestedObj === 'object' ) {
+      if(!Array.isArray(nestedObj)) {
+        ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
+      } else {
+        // TODO
+      }
     } else {
       if (typeof nestedObj !== inputType || entityEqual(typeof nestedObj, inputType)) {
         const { startColumn, endColumn } = findParametersPos(s, functionName, idx)

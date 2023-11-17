@@ -227,7 +227,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           // see: https://github.com/microsoft/monaco-editor/issues/2009#issue-63987720
           editor.onDidPaste((e) => {
             // multiple rows will be merged to single row
-            if (e.range.endColumn <= 1) {
+            if (e.range.endLineNumber <= 1) {
               return
             }
             let newContent = ''
