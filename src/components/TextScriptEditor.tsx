@@ -193,6 +193,12 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           editor.onDidType((v) => {
             editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
           })
+
+          editor.onKeyDown(e => {
+            if (e.code === "Enter") {
+              editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
+            }
+          })
           // disable `Find` widget
           // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
           editor.addCommand(monacoRef.current!.KeyMod.CtrlCmd | monacoRef.current!.KeyCode.KeyF, () => { })
@@ -244,7 +250,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           // disable `F1` command palette
           editor.addCommand(monacoRef.current!.KeyCode.F1, () => { })
           // disable `SHIFT+ENTER` insert new line
-          editor.addCommand(1024 | monacoRef.current!.KeyCode.Enter, () => { })
+          // editor.addCommand(1024 | monacoRef.current!.KeyCode.Enter, () => { })
           editor.onDidFocusEditorText(() => {
             editor.trigger('anything', 'editor.action.triggerSuggest', () => { })
             editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
