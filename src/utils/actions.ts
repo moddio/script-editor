@@ -53,7 +53,7 @@ export const getInputProps = (functionProps: FunctionProps) => {
       }
     }
   }
-  return `can't get inputProps in ${functionProps}`
+  return ''
 }
 
 export const findFunctionPos = (s: string, functionName: string) => {
@@ -108,18 +108,22 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   const functionName = obj['function']
   if (functionName) {
     const type = getReturnType(functionName)
-    if (type !== defaultReturnType && !entityEqual(type, defaultReturnType)) {
-      const { startColumn, endColumn } = findFunctionPos(s, functionName)
-      ranges.push(
-        {
-          message: `output type error: expect ${defaultReturnType} in ${functionName} here, but got ${type}`,
-          severity: 8,
-          startLineNumber: 0,
-          startColumn,
-          endLineNumber: 0,
-          endColumn,
-        }
-      )
+    if (obj._returnType === defaultReturnType || defaultReturnType?.includes(obj._returnType) || (obj._returnType === 'entity' && !constantTypes.includes(defaultReturnType || ''))) {
+
+    } else {
+      if (type !== defaultReturnType && !entityEqual(type, defaultReturnType)) {
+        const { startColumn, endColumn } = findFunctionPos(s, functionName)
+        ranges.push(
+          {
+            message: `output type error: expect ${defaultReturnType} in ${functionName} here, but got ${type}`,
+            severity: 8,
+            startLineNumber: 0,
+            startColumn,
+            endLineNumber: 0,
+            endColumn,
+          }
+        )
+      }
     }
   }
   Object.keys(obj).filter(key => !inValidKeys.includes(key) && !key.startsWith('_')).map((key, idx) => {
@@ -184,6 +188,7 @@ export const extraFilter = (inputProps: string, category: string | undefined) =>
 
 export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType: string | undefined) => {
   let value = ''
+  
   if (inputProps === '') {
     if (defaultReturnType) {
       value = defaultReturnType
@@ -192,7 +197,7 @@ export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType
     }
   } else {
     value = inputProps
-  }
+  }  
   if (obj.data.category === value) {
     return 'b'
   }
