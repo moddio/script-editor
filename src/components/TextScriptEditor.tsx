@@ -7,7 +7,7 @@ import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 import { aliasTable, parser } from 'script-parser'
 import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps } from '../utils/actions'
-import { removeUnusedProperties } from 'utils/obj'
+import { removeUnusedProperties } from '../utils/obj'
 
 export interface TextScriptErrorProps {
   hash: {
