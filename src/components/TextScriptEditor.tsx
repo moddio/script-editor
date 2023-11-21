@@ -7,6 +7,7 @@ import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 import { aliasTable, parser } from 'script-parser'
 import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps } from '../utils/actions'
+import { removeUnusedProperties } from 'utils/obj'
 
 export interface TextScriptErrorProps {
   hash: {
@@ -265,14 +266,15 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           } else {
             try {
               const output = parser.parse(v || '')
+              const filteredOutput = typeof output === 'object' ? removeUnusedProperties(output) : output
               setParseStr(output)
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               if (typeof output === 'object') {
                 const errors = checkTypeIsValid(v || '', output, defaultReturnType)
                 if (errors.length === 0) {
-                  onSuccess?.(output)
+                  onSuccess?.(filteredOutput)
                 } else {
-                  onError?.({ e: errors.map((error) => error.message), output })
+                  onError?.({ e: errors.map((error) => error.message), output: filteredOutput })
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
                 }
               } else {
@@ -288,7 +290,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                     endColumn: v?.length || 0,
                   }])
                 } else {
-                  onSuccess?.(output)
+                  onSuccess?.(filteredOutput)
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
                 }
               }

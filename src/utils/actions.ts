@@ -40,7 +40,9 @@ export const getInputProps = (functionProps: FunctionProps) => {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     if (targetFrag) {
       if (targetFrag.extraData) {
-        if (targetFrag.extraData.dataType) {
+        if (targetFrag.extraData.type) {
+          return targetFrag.extraData.type
+        } else if (targetFrag.extraData.dataType) {
           return targetFrag.extraData.dataType
         } else if (targetFrag.extraData.dataTypes) {
           return targetFrag.extraData.dataTypes
@@ -51,7 +53,7 @@ export const getInputProps = (functionProps: FunctionProps) => {
       }
     }
   }
-  return ''
+  return `can't get inputProps in ${functionProps}`
 }
 
 export const findFunctionPos = (s: string, functionName: string) => {
@@ -110,7 +112,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
       const { startColumn, endColumn } = findFunctionPos(s, functionName)
       ranges.push(
         {
-          message: `expect ${defaultReturnType} here, but got ${type}`,
+          message: `output type error: expect ${defaultReturnType} in ${functionName} here, but got ${type}`,
           severity: 8,
           startLineNumber: 0,
           startColumn,
@@ -120,9 +122,8 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
       )
     }
   }
-  Object.keys(obj).filter(key => !inValidKeys.includes(key)).map((key, idx) => {
+  Object.keys(obj).filter(key => !inValidKeys.includes(key) && !key.startsWith('_')).map((key, idx) => {
     const nestedObj = obj[key]
-
     const inputType = getInputProps({ functionName: functionName, functionParametersOffset: idx })
     if (typeof nestedObj === 'object') {
       ranges.push(...checkTypeIsValid(s, nestedObj, inputType))
@@ -133,7 +134,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
           const { startColumn, endColumn } = findParametersPos(s, functionName, idx)
           ranges.push(
             {
-              message: `expect ${inputType} here, but got ${typeof nestedObj}`,
+              message: `input type error: expect ${inputType} in ${functionName}, but got ${typeof nestedObj}`,
               severity: 8,
               startLineNumber: 0,
               startColumn,
