@@ -10,17 +10,18 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
             {defaultReturnTypes.map((type, idx) => {
                 return (
                     <TextScriptEditor idx={idx} defaultReturnType={type} debug={true} extraSuggestions={[{
-                        label: 'test',
+                        label: "as tronaut",
                         kind: 1,
                         insertTextRules: 4,
-                        insertText: 'test',
+                        insertText: "as tronaut",
                         range: {
                             startLineNumber: 0,
                             endLineNumber: 0,
                             startColumn: 0,
                             endColumn: 0,
                         },
-                        sortText: 'a'
+                        sortText: 'a',
+                        detail: "9SDtGUOM4N",
                     }]} />
                 )
             })}

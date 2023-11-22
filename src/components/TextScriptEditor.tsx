@@ -267,12 +267,24 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } else {
             try {
-              const output = parser.parse(v || '')
+              let value = v
+
+              extraSuggestions?.map((suggest) => {
+                if (value) {
+                  switch (defaultReturnType) {
+                    case 'unitType': {
+                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                      break;
+                    }
+                  }
+                }
+              })
+              const output = parser.parse(value || '')
               const filteredOutput = typeof output === 'object' ? removeUnusedProperties(output) : output
               setParseStr(output)
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               if (typeof output === 'object') {
-                const errors = checkTypeIsValid(v || '', output, defaultReturnType)
+                const errors = checkTypeIsValid(value || '', output, defaultReturnType)
                 if (errors.length === 0) {
                   onSuccess?.(filteredOutput)
                 } else {
@@ -280,7 +292,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
                 }
               } else {
-                if (typeof output !== defaultReturnType) {
+                if (typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))) {
                   const message = `expect ${defaultReturnType} here, but got ${typeof output}`
                   onError?.({ e: [message], output: undefined })
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
@@ -289,7 +301,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                     startLineNumber: 0,
                     startColumn: 0,
                     endLineNumber: 0,
-                    endColumn: v?.length || 0,
+                    endColumn: value?.length || 0,
                   }])
                 } else {
                   onSuccess?.(filteredOutput)

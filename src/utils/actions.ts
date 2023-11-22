@@ -111,7 +111,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
     if (obj._returnType === defaultReturnType || defaultReturnType?.includes(obj._returnType) || (obj._returnType === 'entity' && !constantTypes.includes(defaultReturnType || ''))) {
 
     } else {
-      if (type !== defaultReturnType && !entityEqual(type, defaultReturnType)) {
+      if (type !== defaultReturnType && !entityEqual(type, defaultReturnType) && !(type === 'string' && defaultReturnType?.includes('Type'))) {
         const { startColumn, endColumn } = findFunctionPos(s, functionName)
         ranges.push(
           {

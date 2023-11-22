@@ -22,6 +22,6 @@ type Story = StoryObj<typeof meta>;
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Editor: Story = {
     args: {
-        defaultReturnTypes: ['unit', 'item', 'position', 'region', 'string', 'number'],
+        defaultReturnTypes: ['unit', 'item', 'position', 'region', 'string', 'number', 'unitType'],
     }
 };

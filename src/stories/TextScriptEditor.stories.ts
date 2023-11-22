@@ -25,14 +25,15 @@ export const Editor: Story = {
   args: {
     debug: true,
     idx: 0,
-    defaultReturnType: 'unit',
+    defaultReturnType: 'unitType',
     onError: (e) => { console.log(e) },
     onSuccess: (str) => { console.log(str) },
     extraSuggestions: [{
-      label: 'test',
+      label: "astronaut",
       kind: 1,
       insertTextRules: 4,
-      insertText: 'test',
+      insertText: "astronaut",
+      detail: "astronaut",
       range: {
         startLineNumber: 0,
         endLineNumber: 0,
