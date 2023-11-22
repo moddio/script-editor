@@ -18,7 +18,7 @@
     "isolatedModules": true,
     "suppressImplicitAnyIndexErrors": true,
     "ignoreDeprecations": "5.0",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
   },
   "include": ["src"],
   "exclude": ["dist", "src/**/*.test.js", "src/**/*.stories.js"]
