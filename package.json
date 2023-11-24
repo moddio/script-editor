@@ -27,7 +27,8 @@
         "build": "npx rimraf dist && npx tsc -p tsconfig.json",
         "storybook": "storybook dev -p 6006",
         "build-storybook": "storybook build",
-        "bump": "pnpm add script-parser@latest && npx auto-version --patch"
+        "bump": "pnpm add script-parser@latest && npx auto-version --patch",
+        "test": "jest"
     },
     "eslintConfig": {
         "extends": [

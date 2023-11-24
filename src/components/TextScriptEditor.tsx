@@ -37,7 +37,7 @@ interface TextScriptEditorProps {
 }
 
 const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
-const triggerCharactersWithNumber = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@1234567890-+*/".split("");
+const triggerCharactersWithNumber = triggerCharacters.concat("1234567890-+*/".split(""));
 
 export interface FunctionProps {
   functionName: string,

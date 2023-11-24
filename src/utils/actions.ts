@@ -38,20 +38,7 @@ export const getInputProps = (functionProps: FunctionProps) => {
   const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
   if (targetAction) {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
-    if (targetFrag) {
-      if (targetFrag.extraData) {
-        if (targetFrag.extraData.type) {
-          return targetFrag.extraData.type
-        } else if (targetFrag.extraData.dataType) {
-          return targetFrag.extraData.dataType
-        } else if (targetFrag.extraData.dataTypes) {
-          return targetFrag.extraData.dataTypes
-        }
-
-      } else if (targetFrag.dataType) {
-        return targetFrag.dataType
-      }
-    }
+    return targetFrag?.extraData?.type || targetFrag?.extraData?.dataType || targetFrag?.extraData?.dataTypes || targetFrag?.dataType
   }
   return ''
 }
@@ -188,7 +175,7 @@ export const extraFilter = (inputProps: string, category: string | undefined) =>
 
 export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType: string | undefined) => {
   let value = ''
-  
+
   if (inputProps === '') {
     if (defaultReturnType) {
       value = defaultReturnType
@@ -197,7 +184,7 @@ export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType
     }
   } else {
     value = inputProps
-  }  
+  }
   if (obj.data.category === value) {
     return 'b'
   }
