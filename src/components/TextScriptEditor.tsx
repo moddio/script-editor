@@ -8,6 +8,7 @@ import { isCompositeComponent } from 'react-dom/test-utils'
 import { aliasTable, parser } from 'script-parser'
 import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps } from '../utils/actions'
 import { removeUnusedProperties } from '../utils/obj'
+import { findString } from '../utils/string'
 
 
 
@@ -31,7 +32,7 @@ interface TextScriptEditorProps {
   idx: number,
   defaultValue?: string,
   defaultReturnType?: string,
-  extraSuggestions?: languages.CompletionItem[],
+  extraSuggestions?: Record<string, languages.CompletionItem[]>
   onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
   onSuccess?: (parserOutput: string | undefined) => void,
 }
@@ -85,12 +86,21 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             detail: obj.title,
             range,
           }))
-        extraSuggestions?.map((suggestion) => {
-          suggestion.range = range
-        })
+        const extra: languages.CompletionItem[] = []
+        if (extraSuggestions) {
+          Object.keys(extraSuggestions)?.map((key) => {
+            if (findString(code, key, cursorPos - 1) || key === defaultReturnType) {
+              extraSuggestions[key].map((suggestion) => {
+                suggestion.range = range
+                extra.push(suggestion)
+              })
+            }
+          })
+        }
+
         return {
           incomplete: true,
-          suggestions: extraSuggestions ? extraSuggestions.concat(suggestions) : suggestions,
+          suggestions: extraSuggestions ? extra.concat(suggestions) : suggestions,
         }
       },
     }))
@@ -269,7 +279,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             try {
               let value = v
 
-              extraSuggestions?.map((suggest) => {
+              extraSuggestions?.[defaultReturnType || '_']?.map((suggest) => {
                 if (value) {
                   switch (defaultReturnType) {
                     case 'unitType': {

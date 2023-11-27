@@ -28,19 +28,21 @@ export const Editor: Story = {
     defaultReturnType: 'unitType',
     onError: (e) => { console.log(e) },
     onSuccess: (str) => { console.log(str) },
-    extraSuggestions: [{
-      label: "astronaut",
-      kind: 1,
-      insertTextRules: 4,
-      insertText: "astronaut",
-      detail: "astronaut",
-      range: {
-        startLineNumber: 0,
-        endLineNumber: 0,
-        startColumn: 0,
-        endColumn: 0,
-      },
-      sortText: 'a'
-    }]
+    extraSuggestions: {
+      unitType: [{
+        label: "astronaut",
+        kind: 1,
+        insertTextRules: 4,
+        insertText: "astronaut",
+        detail: "astronaut",
+        range: {
+          startLineNumber: 0,
+          endLineNumber: 0,
+          startColumn: 0,
+          endColumn: 0,
+        },
+        sortText: 'a'
+      }]
+    }
   }
 };

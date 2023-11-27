@@ -21,5 +21,11 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
-  "exclude": ["dist", "src/**/*.test.js", "src/**/*.stories.js"]
+  "exclude": [
+    "dist",
+    "src/**/*.test.js",
+    "src/**/*.stories.js",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts"
+  ]
 }
