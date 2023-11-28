@@ -1,11 +1,12 @@
 import { AnyObject } from "../constants/types"
 import { ACTIONS } from "../constants/tmp"
-import { FunctionProps } from "../components/TextScriptEditor"
+import { ExtraDataProps, FunctionProps } from "../components/TextScriptEditor"
 import { editor, languages } from "monaco-editor"
 import { Editor, Monaco } from '@monaco-editor/react'
 import axios from 'axios'
 import { aliasTable } from "script-parser"
 import { KEYWORDS } from "../constants/monacoConfig"
+import { removeUnusedProperties } from "./obj"
 
 export interface ColumnRange {
   startColumn: number,
@@ -18,6 +19,23 @@ let actionsCache: any[] = res.data.message
 
 export const hasDefaultSuggestions = (suggestions: languages.CompletionItem[]) => {
 
+}
+
+export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps = { thisEntity: [] }) => {
+  const newOutput = removeUnusedProperties(output, extraData, [setVariableDataTypeAndEntityType])
+  return newOutput
+}
+
+export const setVariableDataTypeAndEntityType = (k: string, v: any, extraData: ExtraDataProps) => {
+  if (v === undefined) return
+  if (v['function'] === 'getValueOfEntityVariable' && v['entity']?.['function'] === 'thisEntity') {
+    const targetData = extraData.thisEntity.find((data) => data.key === v['variable']?.['variable']?.text)
+    if (targetData) {
+      v['variable']['variable'].dataType = targetData.dataType
+      v['variable']['variable'].entity = targetData.entity
+    }
+
+  }
 }
 
 export const getActions = () => {
@@ -45,7 +63,7 @@ export const getInputProps = (functionProps: FunctionProps) => {
 
 export const findFunctionPos = (s: string, functionName: string) => {
   const startColumn = s.indexOf(functionName)
-  const endColumn = startColumn + functionName.length - 1
+  const endColumn = startColumn + (functionName ? functionName.length : 0) - 1
   return {
     startColumn,
     endColumn

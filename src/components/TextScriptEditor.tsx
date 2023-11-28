@@ -6,9 +6,10 @@ import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
 import { aliasTable, parser } from 'script-parser'
-import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps } from '../utils/actions'
+import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
 import { removeUnusedProperties } from '../utils/obj'
 import { findString } from '../utils/string'
+import { noBracketsFuncs } from '../constants/action'
 
 
 
@@ -27,12 +28,14 @@ export interface TextScriptErrorProps {
     recoverable: boolean
   }
 }
+export interface ExtraDataProps { thisEntity: { dataType: string, entity: string, key: string }[] }
 interface TextScriptEditorProps {
   debug: boolean,
   idx: number,
   defaultValue?: string,
   defaultReturnType?: string,
-  extraSuggestions?: Record<string, languages.CompletionItem[]>
+  extraSuggestions?: Record<string, languages.CompletionItem[]>,
+  extraData?: ExtraDataProps,
   onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
   onSuccess?: (parserOutput: string | undefined) => void,
 }
@@ -45,7 +48,7 @@ export interface FunctionProps {
   functionParametersOffset: number
 }
 
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, extraSuggestions, debug = false, defaultValue = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, extraData, extraSuggestions, debug = false, defaultValue = '' }) => {
   const [parseStr, setParseStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -69,16 +72,17 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         let cursorPos = model.getOffsetAt(position);
         const code = model.getValue();
         const isFunction = checkIsFunction(code, cursorPos - 1)
+        const needBrackets = (obj: any) => isFunction && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, cursorPos - 1) ? [] :
           getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key] ?? obj.key}${isFunction ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
-            }).join(', ') : ''}${isFunction ? ')' : ''}: ${obj.data.category}`,
+            }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
             kind: isFunction ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
-            insertText: `${aliasTable[obj.key] ?? obj.key}${isFunction ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            insertText: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
-            }).join(', ') : ''}${isFunction ? ')' : ''}`,
+            }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
             // TODO: add documentation
             sortText: checkSuggestions(obj, inputProps, defaultReturnType),
             documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
@@ -290,15 +294,15 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                 }
               })
               const output = parser.parse(value || '')
-              const filteredOutput = typeof output === 'object' ? removeUnusedProperties(output) : output
+              const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               setParseStr(output)
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               if (typeof output === 'object') {
                 const errors = checkTypeIsValid(value || '', output, defaultReturnType)
                 if (errors.length === 0) {
-                  onSuccess?.(filteredOutput)
+                  onSuccess?.(processedOutput)
                 } else {
-                  onError?.({ e: errors.map((error) => error.message), output: filteredOutput })
+                  onError?.({ e: errors.map((error) => error.message), output: processedOutput })
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
                 }
               } else {
@@ -314,7 +318,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                     endColumn: value?.length || 0,
                   }])
                 } else {
-                  onSuccess?.(filteredOutput)
+                  onSuccess?.(processedOutput)
                   monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
                 }
               }
