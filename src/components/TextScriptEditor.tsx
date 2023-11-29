@@ -338,16 +338,18 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   const markers: editor.IMarkerData[] = []
                   const errorHash = (error as TextScriptErrorProps).hash
                   if (errorHash) {
-                    const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
-                    onError?.({ e: [message], output: undefined })
-                    markers.push({
-                      message,
-                      severity: monaco.MarkerSeverity.Error,
-                      startLineNumber: errorHash.loc.first_line,
-                      startColumn: errorHash.loc.first_column,
-                      endLineNumber: errorHash.loc.last_line,
-                      endColumn: errorHash.loc.last_column,
-                    });
+                    if (errorHash.expected) {
+                      const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
+                      onError?.({ e: [message], output: undefined })
+                      markers.push({
+                        message,
+                        severity: monaco.MarkerSeverity.Error,
+                        startLineNumber: errorHash.loc.first_line,
+                        startColumn: errorHash.loc.first_column,
+                        endLineNumber: errorHash.loc.last_line,
+                        endColumn: errorHash.loc.last_column,
+                      });
+                    }
                   } else {
                     const code = model.getValue();
                     const undefinedName = code.replace(' is undefined', '')
