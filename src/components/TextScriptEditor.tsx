@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IDisposable, Position, editor, languages } from 'monaco-editor'
 import { ACTIONS } from '../constants/tmp'
 import { isCompositeComponent } from 'react-dom/test-utils'
-import { aliasTable, parser } from 'script-parser'
+import { aliasTable, parser, actionToString } from 'script-parser'
 import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
 import { removeUnusedProperties } from '../utils/obj'
 import { findString } from '../utils/string'
@@ -49,7 +49,8 @@ export interface FunctionProps {
 }
 
 const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnType, onSuccess, onError, extraData, extraSuggestions, debug = false, defaultValue = '' }) => {
-  const [parseStr, setParseStr] = useState('')
+  const [parseStr, setParseStr] = useState<string | object>('')
+  const [convertedStr, setConvertedStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   const disposableRef = useRef<IDisposable[]>([])
@@ -278,6 +279,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           if (v === '') {
             onSuccess?.(undefined)
             setParseStr('')
+            setConvertedStr('')
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
           } else {
             try {
@@ -296,6 +298,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
               const output = parser.parse(value || '')
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               setParseStr(output)
+              setConvertedStr(actionToString({
+                o: output, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
+              }))
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               if (typeof output === 'object') {
                 const errors = checkTypeIsValid(value || '', output, defaultReturnType)
@@ -369,6 +374,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         <div>
           <pre>
             {JSON.stringify(parseStr, null, 2)}
+          </pre>
+          <pre>
+            {convertedStr}
           </pre>
         </div>
       )}
