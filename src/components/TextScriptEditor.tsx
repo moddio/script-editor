@@ -92,9 +92,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
           }))
         const extra: languages.CompletionItem[] = []
         if (extraSuggestions) {
-          Object.keys(extraSuggestions)?.map((key) => {
+          Object.keys(extraSuggestions)?.forEach((key) => {
             if (findString(code, key, cursorPos - 1) || key === defaultReturnType) {
-              extraSuggestions[key].map((suggestion) => {
+              extraSuggestions[key].forEach((suggestion) => {
                 suggestion.range = range
                 extra.push(suggestion)
               })
@@ -166,7 +166,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
 
   useEffect(() => {
     if (monacoRef.current) {
-      disposableRef.current.map((ref) => {
+      disposableRef.current.forEach((ref) => {
         ref.dispose()
       })
       init(monacoRef.current)
@@ -176,7 +176,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
 
   useEffect(() => {
     return () => {
-      disposableRef.current.map((ref) => {
+      disposableRef.current.forEach((ref) => {
         ref.dispose()
       })
     }
@@ -283,7 +283,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             try {
               let value = v
 
-              extraSuggestions?.[defaultReturnType || '_']?.map((suggest) => {
+              extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
                 if (value) {
                   switch (defaultReturnType) {
                     case 'unitType': {

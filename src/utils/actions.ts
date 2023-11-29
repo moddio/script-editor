@@ -131,7 +131,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
       }
     }
   }
-  Object.keys(obj).filter(key => !inValidKeys.includes(key) && !key.startsWith('_')).map((key, idx) => {
+  Object.keys(obj).filter(key => !inValidKeys.includes(key) && !key.startsWith('_')).forEach((key, idx) => {
     const nestedObj = obj[key]
     const inputType = getInputProps({ functionName: functionName, functionParametersOffset: idx })
     if (typeof nestedObj === 'object') {
