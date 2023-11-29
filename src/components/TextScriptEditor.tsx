@@ -338,7 +338,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
                   const markers: editor.IMarkerData[] = []
                   const errorHash = (error as TextScriptErrorProps).hash
                   if (errorHash) {
-                    const message = `expect ${errorHash.expected.join(', ')} here, but got ${errorHash.token}`
+                    const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
                     onError?.({ e: [message], output: undefined })
                     markers.push({
                       message,
