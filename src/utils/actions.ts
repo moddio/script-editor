@@ -107,9 +107,10 @@ const inValidKeys = [
 
 export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: string | undefined): editor.IMarkerData[] => {
   const ranges: editor.IMarkerData[] = []
-  if (typeof obj !== 'object') {
+  if (typeof obj !== 'object' || obj._returnType === undefined) {
     return []
   }
+
   const functionName = obj['function']
   if (functionName) {
     const type = getReturnType(functionName)
