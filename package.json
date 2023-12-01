@@ -1,6 +1,6 @@
 {
     "name": "script-editor",
-    "version": "0.1.44",
+    "version": "0.1.45",
     "main": "dist/index.js",
     "dependencies": {
         "@monaco-editor/react": "^4.6.0",
@@ -18,7 +18,7 @@
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-scripts": "5.0.1",
-        "script-parser": "^0.0.29",
+        "script-parser": "^0.0.30",
         "ts-jest": "^29.1.1",
         "typescript": "^5.2.2",
         "web-vitals": "^2.1.4"
