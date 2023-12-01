@@ -1,15 +1,11 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
-import { languageDef, configuration, KEYWORDS, OPTIONS } from '../constants/monacoConfig'
+import { languageDef, configuration, OPTIONS } from '../constants/monacoConfig'
 import React, { useEffect, useRef, useState } from 'react'
-import { IDisposable, Position, editor, languages } from 'monaco-editor'
-import { ACTIONS } from '../constants/tmp'
-import { isCompositeComponent } from 'react-dom/test-utils'
-import { aliasTable, parser, actionToString } from 'script-parser'
+import { IDisposable, editor, languages } from 'monaco-editor'
+import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-parser'
 import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
-import { removeUnusedProperties } from '../utils/obj'
 import { findString } from '../utils/string'
-import { noBracketsFuncs } from '../constants/action'
 
 
 
