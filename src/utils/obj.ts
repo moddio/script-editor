@@ -6,7 +6,7 @@ export const removeUnusedProperties = (obj: { [key: string]: any }, extraData: E
   Object.keys(obj).forEach(key => {
     if (!key.startsWith('_')) {
       effects?.forEach((effect) => { effect(key, obj[key], extraData) })
-      newObj[key] = typeof obj[key] === 'object' ? removeUnusedProperties(obj[key], extraData, effects) : obj[key]
+      newObj[key] = typeof obj[key] === 'object' && !Array.isArray(obj[key]) ? removeUnusedProperties(obj[key], extraData, effects) : obj[key]
     }
   })
   return newObj

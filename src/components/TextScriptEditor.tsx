@@ -297,9 +297,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
               })
               const output = parser.parse(value || '')
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
-              setParseStr(output)
+              setParseStr(processedOutput)
               setConvertedStr(actionToString({
-                o: output, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
+                o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
               }))
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               if (typeof output === 'object') {
