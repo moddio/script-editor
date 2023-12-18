@@ -45,7 +45,7 @@ export const getActions = () => {
 export const getReturnType = (functionName: string) => {
   let returnType: string | undefined
   const actions = getActions()
-  returnType = getActions().find(action => action.key === functionName)?.data.category
+  returnType = actions.find(action => action.key === functionName)?.data.category
   if (functionName === 'calculate') {
     return 'number'
   }
@@ -115,7 +115,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   if (functionName) {
     const type = getReturnType(functionName)
     if (obj._returnType === defaultReturnType || defaultReturnType?.includes(obj._returnType) || (obj._returnType === 'entity' && !constantTypes.includes(defaultReturnType || ''))) {
-
+      return []
     } else {
       if (type !== defaultReturnType && !entityEqual(type, defaultReturnType) && !(type === 'string' && defaultReturnType?.includes('Type'))) {
         const { startColumn, endColumn } = findFunctionPos(s, functionName)
