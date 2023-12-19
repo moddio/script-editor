@@ -68,10 +68,10 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         };
         let cursorPos = model.getOffsetAt(position);
         const code = model.getValue();
-        const isFunction = checkIsFunction(code, cursorPos - 1)
+        const isFunction = checkIsFunction(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => isFunction && !noBracketsFuncs.includes(obj.key)
-        const inputProps = getInputProps(getFunctionProps(code, cursorPos - 1))
-        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, cursorPos - 1) ? [] :
+        const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
+        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
             label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
@@ -90,7 +90,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const extra: languages.CompletionItem[] = []
         if (extraSuggestions) {
           Object.keys(extraSuggestions)?.forEach((key) => {
-            if (findString(code, key, cursorPos - 1) || key === defaultReturnType) {
+            if (findString(code, key, Math.max(0, cursorPos - 1)) || key === defaultReturnType) {
               extraSuggestions[key].forEach((suggestion) => {
                 suggestion.range = range
                 extra.push(suggestion)
@@ -129,7 +129,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
       provideSignatureHelp: async (model, position, token, context) => {
         const code = model.getValue();
         let cursorPos = model.getOffsetAt(position);
-        const functionProps = getFunctionProps(code, cursorPos - 1)
+        const functionProps = getFunctionProps(code, Math.max(0, cursorPos - 1))
         const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
         const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :

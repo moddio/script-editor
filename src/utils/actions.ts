@@ -87,7 +87,7 @@ export const findParametersPos = (s: string, functionName: string, offset: numbe
     idx: endColumn,
     step: 1,
     break: false,
-    searchChar: [{ from: ['('], to: ')' }, { from: ["'", '"'] }],
+    searchChar: [{ from: ['('], to: ')' }],
     funcToEachChar: (iter) => {
       if (iter.s[iter.idx] === ',') {
         if (count === offset) {
@@ -120,7 +120,6 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   if (functionName) {
     const type = getReturnType(functionName)
     if (obj._returnType === defaultReturnType || defaultReturnType?.includes(obj._returnType) || (obj._returnType === 'entity' && !constantTypes.includes(defaultReturnType || ''))) {
-      return []
     } else {
       if (type !== defaultReturnType && !entityEqual(type, defaultReturnType) && !(type === 'string' && defaultReturnType?.includes('Type'))) {
         const { startColumn, endColumn } = findFunctionPos(s, functionName)
@@ -238,7 +237,7 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
     step: -1,
     break: false,
     funcToJumpedChar: (iter) => {
-      if (iter.s[iter.idx] === ')') {
+      if (iter.s[iter.idx] === '(') {
         offset += 1
       }
       return iter
@@ -247,20 +246,22 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
       if (KEYWORDS.includes(output.functionName)) {
         if (offset === 0) {
           iter.break = true
+          return iter
         } else {
           offset -= 1
         }
+      }
+
+      if (/^[a-zA-Z0-9_]+$/.test(iter.s[iter.idx])) {
+        output.functionName = iter.s[iter.idx] + output.functionName
       } else {
-        if (/^[a-zA-Z0-9_]+$/.test(iter.s[iter.idx])) {
-          output.functionName = iter.s[iter.idx] + output.functionName
+        if (iter.s[iter.idx] === ',') {
+          output.functionParametersOffset += 1
         } else {
-          if (iter.s[iter.idx] === ',') {
-            output.functionParametersOffset += 1
-          } else {
-            output.functionName = ''
-          }
+          output.functionName = ''
         }
       }
+
       return iter
     },
   }))
@@ -269,9 +270,9 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
 }
 
 export const checkIsWrappedInQuotes = (s: string, pos: number) => {
-  let wrappedInQuotes = true
+  let wrappedInQuotes = s === '' ? false : true
   E.runSync(SmartIterationString({
-    searchChar: [{ from: ['"'] }, { from: ['"'] }],
+    searchChar: [{ from: ['"'] }, { from: ["'"] }],
     s,
     idx: 0,
     step: 1,
