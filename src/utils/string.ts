@@ -5,8 +5,10 @@ export interface IterationStringProps {
   s: string,
   idx: number,
   step: number,
+  break: boolean,
   searchChar: SearchParams[],
   funcToEachChar?: (iter: IterationStringProps) => IterationStringProps,
+  funcToJumpedChar?: (iter: IterationStringProps) => IterationStringProps,
 }
 
 interface SearchParams {
@@ -19,7 +21,7 @@ const noZeroStep = Match.type<IterationStringProps>().pipe(
   Match.orElse(() => E.fail(new Error('the step should not be 0'))),
 )
 
-const canMove = (iter: IterationStringProps) => iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -1
+const canMove = (iter: IterationStringProps) => (iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -1) && !iter.break
 const inRange = (iter: IterationStringProps) => E.unified((iter.idx > -1 && iter.idx < iter.s.length ? E.succeed(iter) : E.fail(new Error(`idx should in 0~${iter.s.length - 1}`))))
 const isInt = (iter: IterationStringProps) => E.unified(Number.isInteger(iter.step) ? E.succeed(iter) : E.fail(new Error('step should be integer')))
 const moveIdx = (iter: IterationStringProps, to?: number) => {
@@ -32,7 +34,7 @@ const moveIdx = (iter: IterationStringProps, to?: number) => {
 const jumpToNextChar = (iter: IterationStringProps) => {
   return pipe(
     iter.searchChar.find(params => params.from.includes(iter.s[iter.idx])),
-    (param) => isUndefined(param) ? iter : moveIdx(iter, Math.min(iter.s.length - 1, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
+    (param) => isUndefined(param) ? iter : moveIdx(iter.funcToJumpedChar ? iter.funcToJumpedChar(iter) : iter, Math.min(iter.s.length - 1, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
   )
 }
 export const SmartIterationString = (

@@ -8,6 +8,7 @@ const newTest = ({ s, searchChar, step, idx, funcToEachChar }: Partial<Iteration
     step: step ?? 1,
     searchChar: searchChar ?? [],
     funcToEachChar: funcToEachChar ?? undefined,
+    break: false,
   }
 )
 

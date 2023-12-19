@@ -6,7 +6,9 @@ import { Editor, Monaco } from '@monaco-editor/react'
 import axios from 'axios'
 import { aliasTable } from "script-parser"
 import { KEYWORDS } from "../constants/monacoConfig"
+import { Effect as E } from "effect";
 import { removeUnusedProperties } from "./obj"
+import { SmartIterationString } from "./string"
 
 export interface ColumnRange {
   startColumn: number,
@@ -42,12 +44,16 @@ export const getActions = () => {
   return actionsCache
 }
 
+// if u want to custom some funcs' return type, u can do it here
 export const getReturnType = (functionName: string) => {
   let returnType: string | undefined
   const actions = getActions()
   returnType = actions.find(action => action.key === functionName)?.data.category
-  if (functionName === 'calculate') {
-    return 'number'
+  switch (functionName) {
+    case 'calculate':
+      return 'number'
+    case 'runScript':
+      return 'string'
   }
   return returnType
 }
@@ -72,30 +78,29 @@ export const findFunctionPos = (s: string, functionName: string) => {
 
 export const findParametersPos = (s: string, functionName: string, offset: number): ColumnRange => {
   let { endColumn } = findFunctionPos(s, functionName)
+  // += 2 to skip the (
   endColumn += 2;
   let startColumn = endColumn
   let count = 0
-  let searchChar = ''
-  for (let i = endColumn; i < s.length; i++) {
-    if (searchChar !== '') {
-      if (s[i] === searchChar) {
-        searchChar = ''
+  E.runSync(SmartIterationString({
+    s,
+    idx: endColumn,
+    step: 1,
+    break: false,
+    searchChar: [{ from: ['('], to: ')' }, { from: ["'", '"'] }],
+    funcToEachChar: (iter) => {
+      if (iter.s[iter.idx] === ',') {
+        if (count === offset) {
+          endColumn = iter.idx + 1
+          iter.break = true
+        } else {
+          startColumn = iter.idx + 3
+        }
       }
-      continue
+      return iter
     }
-    if (s[i] === '(') {
-      searchChar = ')'
-      continue
-    }
-    if (s[i] === ',') {
-      if (count === offset) {
-        endColumn = i + 1
-        break
-      } else {
-        startColumn = i + 3
-      }
-    }
-  }
+  }))
+
   return { startColumn, endColumn }
 }
 
@@ -159,7 +164,6 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
   return ranges;
 }
 
-const searchChars = ['"', "'", ")"]
 const constantTypes = ['string', 'number', 'boolean']
 const multiTypes = ['entity', 'Multiple']
 
@@ -169,28 +173,13 @@ export const filterPipe = (defaultReturnType: string | undefined, inputProps: st
     extraFilter(inputProps, category)
 }
 
-export const equalTypeFilter = (inputProps: string, category: string | undefined) => {
-  if (inputProps === category) {
-    return true
-  }
-  return false
-}
+export const equalTypeFilter = (inputProps: string, category: string | undefined) => inputProps === category
 
+export const entityEqual = (a: any, b: any) =>
+  (!constantTypes.includes(a) && multiTypes.includes(b)) || (!constantTypes.includes(b) && multiTypes.includes(a))
 
-
-export const entityEqual = (a: any, b: any) => {
-  if ((!constantTypes.includes(a) && multiTypes.includes(b)) || (!constantTypes.includes(b) && multiTypes.includes(a))) {
-    return true
-  }
-  return false
-}
-
-export const extraFilter = (inputProps: string, category: string | undefined) => {
-  if (!constantTypes.includes(inputProps) && category && multiTypes.includes(category)) {
-    return true
-  }
-  return false
-}
+export const extraFilter = (inputProps: string, category: string | undefined) =>
+  !constantTypes.includes(inputProps) && category && multiTypes.includes(category)
 
 export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType: string | undefined) => {
   let value = ''
@@ -233,85 +222,91 @@ export const orderSuggestions = (arr: any[], inputProps: string, defaultReturnTy
   return sortedArr
 }
 
-export const defaultReturnTypeFilter = (defaultReturnType: string | undefined, inputProps: string, category: string | undefined) => {
-  if (inputProps === '' && (!defaultReturnType || category === defaultReturnType)) {
-    return true
-  }
-  return false
-}
-
+export const defaultReturnTypeFilter = (defaultReturnType: string | undefined, inputProps: string, category: string | undefined) =>
+  inputProps === '' && (!defaultReturnType || category === defaultReturnType)
 
 export const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
-  let output: FunctionProps =
-  {
+  let output: FunctionProps = {
     functionName: "",
     functionParametersOffset: 0
   }
   let offset = 0;
-  let searchChar = '';
-  for (let i = cursorPos; i >= 0; i--) {
-    if (searchChar !== '') {
-      if (s[i] === searchChar) {
-        searchChar = ''
-      }
-      continue
-    }
-    if (searchChars.includes(s[i])) {
-      searchChar = s[i]
-      if (s[i] === ')') {
-        searchChar = '('
+  E.runSync(SmartIterationString({
+    searchChar: [{ from: ['"'] }, { from: ['"'] }, { from: ['('], to: ')' }],
+    s,
+    idx: cursorPos,
+    step: -1,
+    break: false,
+    funcToJumpedChar: (iter) => {
+      if (iter.s[iter.idx] === ')') {
         offset += 1
       }
-      continue
-    }
-    if (KEYWORDS.includes(output.functionName)) {
-      if (offset === 0) {
-        return output
+      return iter
+    },
+    funcToEachChar: (iter) => {
+      if (KEYWORDS.includes(output.functionName)) {
+        if (offset === 0) {
+          iter.break = true
+        } else {
+          offset -= 1
+        }
       } else {
-        offset -= 1
+        if (/^[a-zA-Z0-9_]+$/.test(iter.s[iter.idx])) {
+          output.functionName = iter.s[iter.idx] + output.functionName
+        } else {
+          if (iter.s[iter.idx] === ',') {
+            output.functionParametersOffset += 1
+          } else {
+            output.functionName = ''
+          }
+        }
       }
-    }
-    if (/^[a-zA-Z0-9_]+$/.test(s[i])) {
-      output.functionName = s[i] + output.functionName
-    } else {
-      if (s[i] === ',') {
-        output.functionParametersOffset += 1
-      } else {
-        output.functionName = ''
-      }
-    }
-  }
+      return iter
+    },
+  }))
+
   return output;
 }
 
 export const checkIsWrappedInQuotes = (s: string, pos: number) => {
-  let searchChar = ''
-  for (let i = 0; i < s.length; i++) {
-    if (searchChar !== '') {
-      if (pos <= i) {
-        return true
+  let wrappedInQuotes = true
+  E.runSync(SmartIterationString({
+    searchChar: [{ from: ['"'] }, { from: ['"'] }],
+    s,
+    idx: 0,
+    step: 1,
+    break: false,
+    funcToEachChar: (iter) => {
+      if (iter.idx === pos) {
+        wrappedInQuotes = false
+        iter.break = true
       }
-      if (s[i] === searchChar) {
-        searchChar = ''
-      }
-      continue
-    }
-    if (s[i] === '"' || s[i] === "'") {
-      searchChar = s[i]
-    }
-  }
-  return false
+      return iter
+    },
+  }))
+
+  return wrappedInQuotes
 }
 
 export const checkIsFunction = (s: string, pos: number) => {
   let blacklistChars = ['(', '"', "'", ")"]
-  for (let i = pos; i > 0; i--) {
-    if (blacklistChars.includes(s[i])) {
-      return true
-    }
-    if (s[i] === '.') {
-      return false
-    }
-  }
-  return true
+  let isFunction = true
+  E.runSync(SmartIterationString({
+    searchChar: [{ from: ['"'] }, { from: ['"'] }],
+    s,
+    idx: pos,
+    step: -1,
+    break: false,
+    funcToEachChar: (iter) => {
+      if (blacklistChars.includes(iter.s[iter.idx])) {
+        iter.break = true
+      }
+      if (iter.s[iter.idx] === '.') {
+        isFunction = false
+        iter.break = true
+      }
+      return iter
+    },
+  }))
+  return isFunction
 }
