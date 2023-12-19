@@ -29,5 +29,16 @@ describe('SmartIterationString', () => {
     })))
     expect(iteratedString).toBe("test__")
   })
+  test("jump ''", () => {
+    let iteratedString = ''
+    E.runSync(SmartIterationString(newTest({
+      s: "''", funcToEachChar: (iter) => {
+        iteratedString += iter.s[iter.idx]
+        return iter
+      },
+      searchChar: [{ from: ["'"] }]
+    })))
+    expect(iteratedString).toBe("")
+  })
 })
 

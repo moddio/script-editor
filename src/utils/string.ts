@@ -31,12 +31,13 @@ const moveIdx = (iter: IterationStringProps, to?: number) => {
   return iter
 }
 
-const jumpToNextChar = (iter: IterationStringProps) => {
-  return pipe(
-    iter.searchChar.find(params => params.from.includes(iter.s[iter.idx])),
-    (param) => isUndefined(param) ? iter : moveIdx(iter.funcToJumpedChar ? iter.funcToJumpedChar(iter) : iter, Math.min(iter.s.length - 1, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
-  )
+const canJump = (iter: IterationStringProps) => iter.searchChar.find(params => params.from.includes(iter.s[iter.idx]))
+
+const jumpToNextChar = (iter: IterationStringProps): IterationStringProps => {
+  const param = canJump(iter)
+  return isUndefined(param) ? iter : jumpToNextChar(moveIdx(iter.funcToJumpedChar ? iter.funcToJumpedChar(iter) : iter, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
 }
+
 export const SmartIterationString = (
   iter: IterationStringProps,
   preTestFuncs: ((input: IterationStringProps) => E.Effect<never, Error, IterationStringProps>)[] = [noZeroStep, inRange, isInt]
@@ -49,9 +50,9 @@ export const SmartIterationString = (
         E.iterate(iters[0], {
           while: canMove,
           body: (iter) => E.succeed(pipe(
-            iter.funcToEachChar ? iter.funcToEachChar(iter) : iter,
+            jumpToNextChar(iter),
+            (iter) => iter.funcToEachChar && canMove(iter) ? iter.funcToEachChar(iter) : iter,
             moveIdx,
-            jumpToNextChar,
           )),
         }
         )
