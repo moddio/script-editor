@@ -35,7 +35,7 @@ const canJump = (iter: IterationStringProps) => iter.searchChar.find(params => p
 
 const jumpToNextChar = (iter: IterationStringProps): IterationStringProps => {
   const param = canJump(iter)
-  return isUndefined(param) ? iter : jumpToNextChar(moveIdx(iter.funcToJumpedChar ? iter.funcToJumpedChar(iter) : iter, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
+  return isUndefined(param) || !canMove(iter) ? iter : jumpToNextChar(moveIdx(iter.funcToJumpedChar ? iter.funcToJumpedChar(iter) : iter, iter.s.indexOf((param.to ?? iter.s[iter.idx]), iter.idx + 1) + 1))
 }
 
 export const SmartIterationString = (
