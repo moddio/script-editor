@@ -231,7 +231,7 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
   }
   let offset = 0;
   E.runSync(SmartIterationString({
-    searchChar: [{ from: ['"'] }, { from: ['"'] }, { from: ['('], to: ')' }],
+    searchChar: [{ from: ['"'] }, { from: ['"'] }, { from: [')'], to: '(' }],
     s,
     idx: cursorPos,
     step: -1,
