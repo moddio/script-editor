@@ -52,8 +52,6 @@ export const getReturnType = (functionName: string) => {
   switch (functionName) {
     case 'calculate':
       return 'number'
-    case 'runScript':
-      return 'string'
   }
   return returnType
 }

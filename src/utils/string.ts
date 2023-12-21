@@ -7,6 +7,7 @@ export interface IterationStringProps {
   step: number,
   break: boolean,
   searchChar: SearchParams[],
+  iterationCount?: number,
   funcToEachChar?: (iter: IterationStringProps) => IterationStringProps,
   funcToJumpedChar?: (iter: IterationStringProps) => IterationStringProps,
 }
@@ -21,13 +22,18 @@ const noZeroStep = Match.type<IterationStringProps>().pipe(
   Match.orElse(() => E.fail(new Error('the step should not be 0'))),
 )
 
-const canMove = (iter: IterationStringProps) => (iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -1) && !iter.break
+const canMove = (iter: IterationStringProps) => (iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -1) && !iter.break && (iter.iterationCount === undefined || iter.iterationCount < 10000)
 const inRange = (iter: IterationStringProps) => E.unified((iter.idx > -1 && iter.idx < Math.max(1, iter.s.length) ? E.succeed(iter) : E.fail(new Error(`idx should in 0~${iter.s.length - 1}`))))
 const isInt = (iter: IterationStringProps) => E.unified(Number.isInteger(iter.step) ? E.succeed(iter) : E.fail(new Error('step should be integer')))
 const moveIdx = (iter: IterationStringProps, to?: number) => {
   iter.idx = to !== undefined ?
     to !== -1 ? to : iter.idx
     : iter.idx + iter.step
+  if (iter.iterationCount === undefined) {
+    iter.iterationCount = 0
+  } else {
+    iter.iterationCount += 1
+  }
   return iter
 }
 
