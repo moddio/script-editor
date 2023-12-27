@@ -65,7 +65,4 @@ export const SmartIterationString = (
     })
   )
 
-export const findString = (s: string, searchChars: string, cursorPos: number) => {
-  const foundStr = s.slice(Math.max(cursorPos - searchChars.length, 0), cursorPos)
-  return foundStr === searchChars
-}
+export const findString = (s: string, searchChars: string, cursorPos: number) => searchChars === s.slice(Math.max(cursorPos - searchChars.length, 0), cursorPos)

@@ -25,6 +25,20 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                 },
                                 sortText: 'a',
                                 detail: "testVar",
+                            }, 
+                            {
+                                label: `testAttr${idx}`,
+                                kind: 1,
+                                insertTextRules: 4,
+                                insertText: `testAttr${idx}`,
+                                range: {
+                                    startLineNumber: 0,
+                                    endLineNumber: 0,
+                                    startColumn: 0,
+                                    endColumn: 0,
+                                },
+                                sortText: 'a',
+                                detail: "testVar",
                             }],
                             unitType: [{
                                 label: "as tronaut",

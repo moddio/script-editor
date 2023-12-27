@@ -1,10 +1,10 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
-import { languageDef, configuration, OPTIONS } from '../constants/monacoConfig'
+import { languageDef, configuration, OPTIONS, FUNC } from '../constants/monacoConfig'
 import React, { useEffect, useRef, useState } from 'react'
 import { IDisposable, editor, languages } from 'monaco-editor'
 import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-parser'
-import { checkSuggestions, checkIsFunction, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
+import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
 import { findString } from '../utils/string'
 
 
@@ -68,16 +68,16 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         };
         let cursorPos = model.getOffsetAt(position);
         const code = model.getValue();
-        const isFunction = checkIsFunction(code, Math.max(0, cursorPos - 1))
-        const needBrackets = (obj: any) => isFunction && !noBracketsFuncs.includes(obj.key)
+        const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
+        const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
-            kind: isFunction ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
-            insertText: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${isFunction ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            kind: suggestionType  === FUNC ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
+            insertText: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
             // TODO: add documentation

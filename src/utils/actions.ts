@@ -23,20 +23,21 @@ export const hasDefaultSuggestions = (suggestions: languages.CompletionItem[]) =
 
 }
 
-export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps = { thisEntity: [] }) => {
+export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps = {                                                                                                                                                                                                                             : [] }) => {
   const newOutput = removeUnusedProperties(output, extraData, [setVariableDataTypeAndEntityType])
   return newOutput
 }
 
 export const setVariableDataTypeAndEntityType = (k: string, v: any, extraData: ExtraDataProps) => {
   if (v === undefined) return
-  if (v['function'] === 'getValueOfEntityVariable' && v['entity']?.['function'] === 'thisEntity') {
-    const targetData = extraData.thisEntity.find((data) => data.key === v['variable']?.['variable']?.text)
-    if (targetData) {
-      v['variable']['variable'].dataType = targetData.dataType
-      v['variable']['variable'].entity = targetData.entity
+  if (v['function'] === 'getValueOfEntityVariable') {
+    if (v['entity']?.['function'] === 'thisEntity') {
+      const targetData = extraData.thisEntity.find((data) => data.key === v['variable']?.['variable']?.text)
+      if (targetData) {
+        v['variable']['variable'].dataType = targetData.dataType
+        v['variable']['variable'].entity = targetData.entity
+      }
     }
-
   }
 }
 
@@ -287,9 +288,15 @@ export const checkIsWrappedInQuotes = (s: string, pos: number) => {
   return wrappedInQuotes
 }
 
-export const checkIsFunction = (s: string, pos: number) => {
+/**
+ * 
+ * @param s string
+ * @param pos start position
+ * @returns 0 stands for function, 1 stands for attr, 2 stands for var
+ */
+export const getSuggestionType = (s: string, pos: number): number => {
   let blacklistChars = ['(', '"', "'", ")"]
-  let isFunction = true
+  let type = 0
   E.runSync(SmartIterationString({
     searchChar: [{ from: ['"'] }, { from: ['"'] }],
     s,
@@ -297,15 +304,13 @@ export const checkIsFunction = (s: string, pos: number) => {
     step: -1,
     break: false,
     funcToEachChar: (iter) => {
-      if (blacklistChars.includes(iter.s[iter.idx])) {
-        iter.break = true
-      }
+      iter.break = blacklistChars.includes(iter.s[iter.idx])
       if (iter.s[iter.idx] === '.') {
-        isFunction = false
+        type = iter.s[iter.idx + 1] === '$'? 2: 1
         iter.break = true
       }
       return iter
     },
   }))
-  return isFunction
+  return type
 }
