@@ -23,7 +23,9 @@ export const hasDefaultSuggestions = (suggestions: languages.CompletionItem[]) =
 
 }
 
-export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps = {                                                                                                                                                                                                                             : [] }) => {
+export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps = {
+  thisEntity: []
+}) => {
   const newOutput = removeUnusedProperties(output, extraData, [setVariableDataTypeAndEntityType])
   return newOutput
 }
@@ -120,7 +122,7 @@ export const checkTypeIsValid = (s: string, obj: AnyObject, defaultReturnType: s
     const type = getReturnType(functionName)
     if (obj._returnType === defaultReturnType || defaultReturnType?.includes(obj._returnType) || (obj._returnType === 'entity' && !constantTypes.includes(defaultReturnType || ''))) {
     } else {
-      if (type !== defaultReturnType && !entityEqual(type, defaultReturnType) && !(type === 'string' && defaultReturnType?.includes('Type'))) {
+      if (defaultReturnType !== '' && defaultReturnType !== undefined && type !== defaultReturnType && !entityEqual(type, defaultReturnType) && !(type === 'string' && defaultReturnType?.includes('Type'))) {
         const { startColumn, endColumn } = findFunctionPos(s, functionName)
         ranges.push(
           {
@@ -306,7 +308,7 @@ export const getSuggestionType = (s: string, pos: number): number => {
     funcToEachChar: (iter) => {
       iter.break = blacklistChars.includes(iter.s[iter.idx])
       if (iter.s[iter.idx] === '.') {
-        type = iter.s[iter.idx + 1] === '$'? 2: 1
+        type = iter.s[iter.idx + 1] === '$' ? 2 : 1
         iter.break = true
       }
       return iter
