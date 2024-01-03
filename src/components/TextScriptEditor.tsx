@@ -169,6 +169,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
+        console.log(inputProps, defaultReturnType)
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
             label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {

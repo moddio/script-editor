@@ -61,6 +61,7 @@ export const getReturnType = (functionName: string) => {
 
 export const getInputProps = (functionProps: FunctionProps) => {
   const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
+  console.log(targetAction, functionProps)
   if (targetAction) {
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     return targetFrag?.extraData?.type || targetFrag?.extraData?.dataType || targetFrag?.extraData?.dataTypes || targetFrag?.dataType
@@ -244,8 +245,9 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
       return iter
     },
     funcToEachChar: (iter) => {
+      console.log(iter.s[iter.idx])
       if (KEYWORDS.includes(output.functionName)) {
-        if (offset === 0) {
+        if (offset === 0 && (iter.s[iter.idx + iter.step] === undefined || /^[a-zA-Z0-9_]+$/.test(iter.s[iter.idx + iter.step]) === false)) {
           iter.break = true
           return iter
         } else {

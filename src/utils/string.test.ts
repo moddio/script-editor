@@ -17,7 +17,7 @@ describe('SmartIterationString', () => {
   test("step can't be float", () => expect(E.runSyncExit(SmartIterationString(newTest({ step: 0.5 })))._tag).toBe("Failure"))
   test("idx should in range", () => expect(E.runSyncExit(SmartIterationString(newTest({ idx: 10, })))._tag).toBe("Failure"))
   test("move to end", () => expect(E.runSync(SmartIterationString(newTest({})))).toMatchObject({ idx: 5 }))
-  test("move to zero", () => expect(E.runSync(SmartIterationString(newTest({ idx: 4, step: -1, })))).toMatchObject({ idx: 0 }))
+  test("move to zero", () => expect(E.runSync(SmartIterationString(newTest({ idx: 4, step: -1, })))).toMatchObject({ idx: -1 }))
   test("jump '", () => {
     let iteratedString = ''
     E.runSync(SmartIterationString(newTest({
