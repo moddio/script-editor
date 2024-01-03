@@ -27,10 +27,10 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                 detail: "testVar",
                             }, 
                             {
-                                label: `testAttr${idx}`,
+                                label: `$testAttr${idx}`,
                                 kind: 1,
-                                insertTextRules: 4,
-                                insertText: `testAttr${idx}`,
+                                insertTextRules: 0,
+                                insertText: `$testAttr${idx}`,
                                 range: {
                                     startLineNumber: 0,
                                     endLineNumber: 0,
@@ -38,7 +38,7 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                     endColumn: 0,
                                 },
                                 sortText: 'a',
-                                detail: "testVar",
+                                detail: "testAttr",
                             }],
                             unitType: [{
                                 label: "as tronaut",
@@ -53,7 +53,23 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                 },
                                 sortText: 'a',
                                 detail: "9SDtGUOM4N",
-                            }]
+                            }],
+                            runScript: [
+                                {
+                                    label: "worldScript1",
+                                    kind: 1,
+                                    insertTextRules: 4,
+                                    insertText: `"worldScript1"`,
+                                    range: {
+                                        startLineNumber: 0,
+                                        endLineNumber: 0,
+                                        startColumn: 0,
+                                        endColumn: 0,
+                                    },
+                                    sortText: 'a',
+                                    detail: "worldScript1",
+                                }
+                            ]
                         }} />
                 )
             })}

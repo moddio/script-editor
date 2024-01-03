@@ -61,8 +61,12 @@ export const getReturnType = (functionName: string) => {
 
 export const getInputProps = (functionProps: FunctionProps) => {
   const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
-  console.log(targetAction, functionProps)
   if (targetAction) {
+    switch (targetAction.key) {
+      case 'runScript': {
+        return 'string'
+      }
+    }
     const targetFrag: any = targetAction.data.fragments.filter((frag: any) => frag.type === 'variable')[functionProps.functionParametersOffset]
     return targetFrag?.extraData?.type || targetFrag?.extraData?.dataType || targetFrag?.extraData?.dataTypes || targetFrag?.dataType
   }
@@ -233,7 +237,7 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
   }
   let offset = 0;
   E.runSync(SmartIterationString({
-    searchChar: [{ from: ['"'] }, { from: ['"'] }, { from: [')'], to: '(' }],
+    searchChar: [{ from: ['"'] }, { from: ["'"] }, { from: [')'], to: '(' }],
     s,
     idx: cursorPos,
     step: -1,

@@ -169,7 +169,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
-        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
+        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1))  ? [] :
           getActions().map((obj, orderIdx) => ({
             label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
@@ -188,7 +188,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const extra: languages.CompletionItem[] = []
         if (extraSuggestions) {
           Object.keys(extraSuggestions)?.forEach((key) => {
-            if (findString(code, key, Math.max(0, cursorPos - 1)) || key === defaultReturnType) {
+            if (getFunctionProps(code, Math.max(0, cursorPos - 1)).functionName === key || key === defaultReturnType) {
               extraSuggestions[key].forEach((suggestion) => {
                 suggestion.range = range
                 extra.push(suggestion)
