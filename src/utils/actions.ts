@@ -192,7 +192,7 @@ export const checkSuggestions = (obj: any, inputProps: string, defaultReturnType
       return 'c'
     }
   } else {
-    value = inputProps
+    value = inputProps ?? defaultReturnType
   }
   if (obj.data.category === value) {
     return 'b'
@@ -245,7 +245,6 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
       return iter
     },
     funcToEachChar: (iter) => {
-      console.log(iter.s[iter.idx])
       if (KEYWORDS.includes(output.functionName)) {
         if (offset === 0 && (iter.s[iter.idx + iter.step] === undefined || /^[a-zA-Z0-9_]+$/.test(iter.s[iter.idx + iter.step]) === false)) {
           iter.break = true
