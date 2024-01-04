@@ -230,7 +230,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const functionProps = getFunctionProps(code, Math.max(0, cursorPos - 1))
         const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
-        const signatures: languages.SignatureHelp['signatures'] = !targetAction ? [] :
+        const signatures: languages.SignatureHelp['signatures'] = !targetAction || functionProps.functionName === 'undefined' ? [] :
           [
             {
               label: '',
