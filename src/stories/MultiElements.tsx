@@ -15,7 +15,7 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                             thisEntity: [{
                                 label: `testVar${idx}`,
                                 kind: 1,
-                                insertTextRules: 4,
+                                insertTextRules: 0,
                                 insertText: `testVar${idx}`,
                                 range: {
                                     startLineNumber: 0,
@@ -43,7 +43,7 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                             unitType: [{
                                 label: "as tronaut",
                                 kind: 1,
-                                insertTextRules: 4,
+                                insertTextRules: 0,
                                 insertText: "as tronaut",
                                 range: {
                                     startLineNumber: 0,
@@ -54,11 +54,11 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                 sortText: 'a',
                                 detail: "9SDtGUOM4N",
                             }],
-                            runScript: [
+                            script: [
                                 {
                                     label: "worldScript1",
                                     kind: 1,
-                                    insertTextRules: 4,
+                                    insertTextRules: 0,
                                     insertText: `"worldScript1"`,
                                     range: {
                                         startLineNumber: 0,

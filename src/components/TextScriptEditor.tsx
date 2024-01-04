@@ -88,7 +88,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
           }
         } else {
-          if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))) {
+          if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
+            && !(typeof output === 'string' && defaultReturnType === 'script')
+          ) {
             const message = `expect ${defaultReturnType} here, but got ${typeof output}`
             onError?.({ e: [message], output: undefined })
             monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
@@ -169,7 +171,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
-        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1))  ? [] :
+        const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
             label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
