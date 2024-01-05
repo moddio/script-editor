@@ -59,7 +59,7 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                     label: "worldScript1",
                                     kind: 1,
                                     insertTextRules: 0,
-                                    insertText: `"worldScript1"`,
+                                    insertText: "worldScript1",
                                     range: {
                                         startLineNumber: 0,
                                         endLineNumber: 0,
@@ -67,7 +67,7 @@ export const CombinedComp: React.FC<CombinedCompProps> = ({ defaultReturnTypes }
                                         endColumn: 0,
                                     },
                                     sortText: 'a',
-                                    detail: "worldScript1",
+                                    detail: "BigWo48cLr",
                                 }
                             ]
                         }} />

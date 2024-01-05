@@ -22,7 +22,7 @@ const noZeroStep = Match.type<IterationStringProps>().pipe(
   Match.orElse(() => E.fail(new Error('the step should not be 0'))),
 )
 
-const canMove = (iter: IterationStringProps) => (iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -2) && !iter.break && (iter.iterationCount === undefined || iter.iterationCount < 10000)
+const canMove = (iter: IterationStringProps) => (iter.step > 0 ? iter.idx + iter.step < iter.s.length + 1 : iter.idx + iter.step > -2) && !iter.break && (iter.iterationCount === undefined || iter.iterationCount < 100)
 const inRange = (iter: IterationStringProps) => E.unified((iter.idx > -1 && iter.idx < Math.max(1, iter.s.length) ? E.succeed(iter) : E.fail(new Error(`idx should in 0~${iter.s.length - 1}`))))
 const isInt = (iter: IterationStringProps) => E.unified(Number.isInteger(iter.step) ? E.succeed(iter) : E.fail(new Error('step should be integer')))
 const moveIdx = (iter: IterationStringProps, to?: number) => {

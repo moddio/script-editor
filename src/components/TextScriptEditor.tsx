@@ -51,7 +51,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   const disposableRef = useRef<IDisposable[]>([])
-
   const stringToAction = (v?: string) => {
     if (v === '') {
       onSuccess?.(undefined)
@@ -61,11 +60,14 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
     } else {
       try {
         let value = v
-
         extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
           if (value) {
             switch (defaultReturnType) {
               case 'unitType': {
+                value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                break;
+              }
+              case 'script': {
                 value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
                 break;
               }
@@ -75,8 +77,9 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         const output = parser.parse(value || '')
         const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
         setParseStr(processedOutput)
+        // TODO: add gameData
         setConvertedStr(actionToString({
-          o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
+          o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {}}
         }))
         monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
         if (typeof output === 'object') {
