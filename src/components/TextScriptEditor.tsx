@@ -79,7 +79,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
         setParseStr(processedOutput)
         // TODO: add gameData
         setConvertedStr(actionToString({
-          o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {}}
+          o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
         }))
         monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
         if (typeof output === 'object') {
@@ -380,9 +380,11 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, defaultReturnT
       />
       {debug && (
         <div>
+          <span style={{ backgroundColor: "orange" }}>output(raw json):</span>
           <pre>
             {JSON.stringify(parseStr, null, 2)}
           </pre>
+          <span style={{ backgroundColor: "orange" }}>converted from raw json:</span>
           <pre>
             {convertedStr}
           </pre>
