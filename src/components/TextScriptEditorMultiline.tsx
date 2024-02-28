@@ -6,26 +6,9 @@ import { IDisposable, editor, languages } from 'monaco-editor'
 import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-parser'
 import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
 import { findString } from '../utils/string'
+import { ExtraDataProps, TextScriptErrorProps, triggerCharacters, triggerCharactersWithNumber } from './TextScriptEditor'
 
-
-
-export interface TextScriptErrorProps {
-  hash: {
-    text: string,
-    token: string,
-    line: number,
-    loc: {
-      first_line: number,
-      last_line: number,
-      first_column: number,
-      last_column: number
-    },
-    expected: string[],
-    recoverable: boolean
-  }
-}
-export interface ExtraDataProps { thisEntity: { dataType: string, entity: string, key: string }[] }
-interface TextScriptEditorProps {
+interface TextScriptEditorMultilineProps {
   debug: boolean,
   idx: number,
   defaultValue?: string,
@@ -36,16 +19,7 @@ interface TextScriptEditorProps {
   onSuccess?: (parserOutput: string | undefined) => void,
 }
 
-export const triggerCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.\\@".split("");
-export const triggerCharactersWithNumber = triggerCharacters.concat("1234567890-+*/".split(""));
-
-export interface FunctionProps {
-  functionName: string,
-  functionParametersOffset: number
-}
-
-
-const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onError, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
+const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuccess, onError, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
   const [parseStr, setParseStr] = useState<string | object>('')
   const [convertedStr, setConvertedStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
@@ -208,24 +182,6 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onE
         }
       },
     }))
-    // TODO: finish hover provider
-    // monaco.languages.registerHoverProvider(MODDIOSCRIPT, {
-    //   provideHover: (model, position, token) => {
-    //     const { column, lineNumber } = position;
-
-    //     const word = model.getWordAtPosition(position)?.word
-    //     const contents = model.getLineContent(lineNumber)
-    //     console.log(model, position, token, word, contents)
-    //     return {
-    //       value: 'hello?' || '',
-    //       isTrusted: true,
-    //       supportThemeIcons: true,
-    //       contents: [{
-    //         value: 'hello!',
-    //       }]
-    //     }
-    //   }
-    // })
     // TODO: finish signatureHelp provider
     disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
       signatureHelpTriggerCharacters: triggerCharactersWithNumber,
@@ -284,11 +240,22 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onE
 
   return (
     <>
+      {debug && <textarea
+        placeholder='place ur script raw json here'
+        style={{ width: '100%', height: 200}}
+        onChange={e => {
+          try {
+            editorRef.current?.setValue(actionToString({ o: JSON.parse(e.currentTarget.value), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
+          } catch (e) {
+
+          }
+
+        }}></textarea>}
       <Editor
         language={MODDIOSCRIPT + idx}
-        height="1.5rem"
         theme="vs-dark"
-        options={OPTIONS}
+        options={{}}
+        height={'100vh'}
         beforeMount={(monaco) => {
           monacoRef.current = monaco
           // Register a new language
@@ -317,61 +284,10 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onE
               editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
             }
           })
-          // disable `Find` widget
-          // see: https://github.com/microsoft/monaco-editor/issues/287#issuecomment-328371787
-          editor.addCommand(monacoRef.current!.KeyMod.CtrlCmd | monacoRef.current!.KeyCode.KeyF, () => { })
-          editor.addCommand(monacoRef.current!.KeyMod.CtrlCmd | monacoRef.current!.KeyCode.KeyH, () => { })
-
-          // disable press `Enter` in case of producing line breaks
-          editor.addCommand(monacoRef.current!.KeyCode.Enter, () => {
-            // State: https://github.com/microsoft/vscode/blob/1.56.0/src/vs/editor/contrib/suggest/suggestWidget.ts#L50
-
-            /**
-             * Origin purpose: disable line breaks
-             * Side Effect: If defining completions, will prevent `Enter` confirm selection
-             * Side Effect Solution: always accept selected suggestion when `Enter`
-             *
-             * But it is hard to find out the name `acceptSelectedSuggestion` to trigger.
-             *
-             * Where to find the `acceptSelectedSuggestion` at monaco official documents ?
-             * Below is some refs:
-             * - https://stackoverflow.com/questions/64430041/get-a-list-of-monaco-commands-actions-ids
-             * - command from: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/contrib/suggest/suggestController.ts#L632-L638
-             * - https://github.com/microsoft/vscode/search?q=registerEditorCommand
-             * - real list: https://github.com/microsoft/vscode/blob/e216a598d3e02401f26459fb63a4f1b6365ec4ec/src/vs/editor/browser/editorExtensions.ts#L611
-             *
-             *
-             * Finally, `acceptSelectedSuggestion` appears here:
-             * - `editorExtensions.js` Line 288
-             */
-            editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
-          })
 
           // deal with user paste
           // see: https://github.com/microsoft/monaco-editor/issues/2009#issue-63987720
           editor.onDidPaste((e) => {
-            // multiple rows will be merged to single row
-            if (e.range.endLineNumber <= 1) {
-              return
-            }
-            let newContent = ''
-            const textModel = editor.getModel() as editor.ITextModel
-            const lineCount = textModel.getLineCount()
-            // remove all line breaks
-            for (let i = 0; i < lineCount; i += 1) {
-              newContent += `${textModel.getLineContent(i + 1)}${i !== lineCount - 1 ? ' ' : ''}`
-            }
-            textModel.setValue(newContent)
-            editor.setPosition({ column: newContent.length + 2, lineNumber: 1 })
-          })
-
-          // disable `F1` command palette
-          editor.addCommand(monacoRef.current!.KeyCode.F1, () => { })
-          // disable `SHIFT+ENTER` insert new line
-          // editor.addCommand(1024 | monacoRef.current!.KeyCode.Enter, () => { })
-          editor.onDidFocusEditorText(() => {
-            editor.trigger('anything', 'editor.action.triggerSuggest', () => { })
-            editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
           })
         }}
         onChange={(v) => {
