@@ -1,7 +1,7 @@
 import { Editor, Monaco } from '@monaco-editor/react'
 import { MODDIOSCRIPT } from '../constants/string'
 import { languageDef, configuration, OPTIONS, FUNC } from '../constants/monacoConfig'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { LegacyRef, useEffect, useRef, useState } from 'react'
 import { IDisposable, editor, languages } from 'monaco-editor'
 import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-parser'
 import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
@@ -22,12 +22,37 @@ interface TextScriptEditorMultilineProps {
   onSuccess?: (parserOutput: Record<string, any> | undefined) => void,
 }
 
+export function formatJSON(val: any = {}) {
+  try {
+    const res = JSON.parse(val);
+    return JSON.stringify(res, null, 2)
+  } catch {
+    const errorJson = {
+      "error": `invalid ${val}`
+    }
+    return JSON.stringify(errorJson, null, 2)
+  }
+}
+
 const isComment = (s: string) => s.trim().startsWith('//');
 const isTrigger = (s: string) => s.trim().startsWith('@');
-
+const replaceFunctionWithType = (a: Record<string, any>[]) => {
+  return a.map((o) => {
+    const newObject: any = {}
+    Object.keys(o).forEach((k) => {
+      if (k === 'function') {
+        newObject.type = o[k]
+      } else {
+        newObject[k] = o[k]
+      }
+    })
+    return newObject
+  })
+}
 const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ onSuccess, onError, rawJSON, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
   const [parseStr, setParseStr] = useState<string | object>('')
   const [convertedStr, setConvertedStr] = useState('')
+  const textRef = useRef<HTMLTextAreaElement | undefined>(undefined)
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   const disposableRef = useRef<IDisposable[]>([])
@@ -106,11 +131,15 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         // }
 
         const jsonData = json.generateRawJSON()
+        jsonData.actions = replaceFunctionWithType(jsonData.actions)
         setParseStr(jsonData)
         // TODO: add gameData
         setConvertedStr(actionToString({
           o: jsonData, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
         }))
+        if (textRef?.current?.value) {
+          textRef.current.value = JSON.stringify(jsonData)
+        }
         onSuccess?.(jsonData)
       } catch (e: any) {
         // const error: TextScriptErrorProps | Error = e
@@ -268,18 +297,20 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
   }, [])
 
   return (
-    <>
-      {debug && <textarea
-        placeholder='place ur script raw json here'
-        style={{ width: '100%', height: 200 }}
-        onChange={e => {
+    <div style={{ display: 'flex' }}>
+      {debug && <Editor
+        value={formatJSON(JSON.stringify(parseStr))}
+        theme="vs-dark"
+        language='JSON'
+        height='100vh'
+        onChange={v => {
           try {
-            editorRef.current?.setValue(actionToString({ o: JSON.parse(e.currentTarget.value), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
+            editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
           } catch (e) {
 
           }
 
-        }}></textarea>}
+        }} />}
       <Editor
         language={MODDIOSCRIPT}
         theme="vs-dark"
@@ -335,7 +366,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           </pre>
         </div>
       )}
-    </>
+    </div>
   )
 }
 
