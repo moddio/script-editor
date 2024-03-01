@@ -13,14 +13,71 @@ export const languageDef = {
   defaultToken: "",
   number: /\d+(\.\d+)?/,
   keywords: KEYWORDS,
+  escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+  digits: /\d+(_+\d+)*/,
+  octaldigits: /[0-7]+(_+[0-7]+)*/,
+  binarydigits: /[0-1]+(_+[0-1]+)*/,
+  hexdigits: /[[0-9a-fA-F]+(_+[0-9a-fA-F]+)*/,
+  symbols: /[=><!~?:&|+\-*\/\^%]+/,
+  regexpctl: /[(){}\[\]\$\^|\-*+?\.]/,
+  typeKeywords: [
+    'any', 'boolean', 'number', 'object', 'string', 'undefined'
+  ],
+  operators: [
+    '<=', '>=', '==', '!=', '===', '!==', '=>', '+', '-', '**',
+    '*', '/', '%', '++', '--', '<<', '</', '>>', '>>>', '&',
+    '|', '^', '!', '~', '&&', '||', '?', ':', '=', '+=', '-=',
+    '*=', '**=', '/=', '%=', '<<=', '>>=', '>>>=', '&=', '|=',
+    '^=', '@',
+  ],
+  regexpesc: /\\(?:[bBdDfnrstvwWn0\\\/]|@regexpctl|c[A-Z]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})/,
   tokenizer: {
     root: [
-      [/\w+/, { cases: { "@keywords": "keyword" } }],
       { include: "@whitespace" },
       { include: "@numbers" },
       { include: "@strings" },
-      [/@\s*[a-zA-Z_\$][\w\$]*/, { token: 'annotation', log: 'annotation token: $0' }],
+      [/@\s*[a-zA-Z_\$][\w\$]*/, { token: 'annotation' }],
+      // identifiers and keywords
+      [/[a-z_$][\w$]*/, {
+        cases: {
+          '@typeKeywords': 'keyword',
+          '@keywords': 'keyword',
+          '@default': 'identifier'
+        }
+      }],
+      // delimiters and operators
+      [/[()\[\]]/, '@brackets'],
+      [/[<>](?!@symbols)/, '@brackets'],
+      [/@symbols/, {
+        cases: {
+          '@operators': 'delimiter',
+          '@default': ''
+        }
+      }],
     ],
+
+    string_double: [
+      [/[^\\"]+/, 'string'],
+      [/@escapes/, 'string.escape'],
+      [/\\./, 'string.escape.invalid'],
+      [/"/, 'string', '@pop']
+    ],
+
+    string_single: [
+      [/[^\\']+/, 'string'],
+      [/@escapes/, 'string.escape'],
+      [/\\./, 'string.escape.invalid'],
+      [/'/, 'string', '@pop']
+    ],
+
+    string_backtick: [
+      [/\$\{/, { token: 'delimiter.bracket', next: '@bracketCounting' }],
+      [/[^\\`$]+/, 'string'],
+      [/@escapes/, 'string.escape'],
+      [/\\./, 'string.escape.invalid'],
+      [/`/, 'string', '@pop']
+    ],
+
     comment: [
       [/[^\/*]+/, 'comment'],
       [/\/\*/, 'comment', '@push'],    // nested comment
@@ -33,11 +90,29 @@ export const languageDef = {
       [/\/\/.*$/, 'comment'],
     ],
     numbers: [
-      [/@number/, "number"],
+      // numbers
+      [/(@digits)[eE]([\-+]?(@digits))?/, 'number.float'],
+      [/(@digits)\.(@digits)([eE][\-+]?(@digits))?/, 'number.float'],
+      [/0[xX](@hexdigits)/, 'number.hex'],
+      [/0[oO]?(@octaldigits)/, 'number.octal'],
+      [/0[bB](@binarydigits)/, 'number.binary'],
+      [/(@digits)/, 'number'],
+
+      // delimiter: after number because of .\d floats
+      [/[;,.]/, 'delimiter'],
     ],
     strings: [
-      [/"([^"]*)"/, "string.escape"],
-      [/'([^']*)'/, "string.escape"]
+      // strings
+      [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
+      [/'([^'\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
+      [/"/, 'string', '@string_double'],
+      [/'/, 'string', '@string_single'],
+      [/`/, 'string', '@string_backtick'],
+    ],
+    bracketCounting: [
+      [/\{/, 'delimiter.bracket', '@bracketCounting'],
+      [/\}/, 'delimiter.bracket', '@pop'],
+      { include: 'root' }
     ],
 
   },

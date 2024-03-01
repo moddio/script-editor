@@ -18,6 +18,9 @@ export interface ColumnRange {
 const res = await axios.get('https://www.modd.io/api/editor-api/?game=two-houses')
 let actionsCache: any[] = res.data.message
 
+export const getActions = () => {
+  return actionsCache
+}
 
 export const hasDefaultSuggestions = (suggestions: languages.CompletionItem[]) => {
 
@@ -43,9 +46,7 @@ export const setVariableDataTypeAndEntityType = (k: string, v: any, extraData: E
   }
 }
 
-export const getActions = () => {
-  return actionsCache
-}
+
 
 // if u want to custom some funcs' return type, u can do it here
 export const getReturnType = (functionName: string) => {

@@ -7,25 +7,32 @@ import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-pars
 import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
 import { findString } from '../utils/string'
 import { ExtraDataProps, TextScriptErrorProps, triggerCharacters, triggerCharactersWithNumber } from './TextScriptEditor'
+import RawJSONGenerator from '../utils/rawJSONGenerator'
+import { RawJSON } from '../constants/types'
 
 interface TextScriptEditorMultilineProps {
   debug: boolean,
-  idx: number,
+  scriptId: string,
+  rawJSON: RawJSON,
   defaultValue?: string,
   defaultReturnType?: string,
   extraSuggestions?: Record<string, languages.CompletionItem[]>,
   extraData?: ExtraDataProps,
   onError?: ({ e, output }: { e: string[], output: string | undefined }) => void,
-  onSuccess?: (parserOutput: string | undefined) => void,
+  onSuccess?: (parserOutput: Record<string, any> | undefined) => void,
 }
 
-const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuccess, onError, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
+const isComment = (s: string) => s.trim().startsWith('//');
+const isTrigger = (s: string) => s.trim().startsWith('@');
+
+const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ onSuccess, onError, rawJSON, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
   const [parseStr, setParseStr] = useState<string | object>('')
   const [convertedStr, setConvertedStr] = useState('')
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
   const disposableRef = useRef<IDisposable[]>([])
   const stringToAction = (v?: string) => {
+    editorRef.current?.getModel()?.setEOL(0)
     if (v === '') {
       onSuccess?.(undefined)
       setParseStr('')
@@ -33,107 +40,129 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
       monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
     } else {
       try {
-        let value = v
-        extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
-          if (value) {
-            switch (defaultReturnType) {
-              case 'unitType': {
-                value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
-                break;
+        const { name, key, order, parent, isProtected } = rawJSON
+        const json = new RawJSONGenerator({ name, key, order, parent, isProtected })
+        const splitLine = v?.split('\n')
+        if (splitLine) {
+          for (let i = 0; i < splitLine.length; i++) {
+            let value = splitLine[i]
+            if (value !== '') {
+              if (isComment(value)) {
+                json.insertComment(value.replace('//', '').trim())
+                continue
               }
-              case 'script': {
-                value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
-                break;
+              if (isTrigger(value)) {
+                json.insertTriggers(parser.parse(value))
+                continue
               }
+              extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
+                if (value) {
+                  switch (defaultReturnType) {
+                    case 'unitType': {
+                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                      break;
+                    }
+                    case 'script': {
+                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                      break;
+                    }
+                  }
+                }
+              })
+              const output = parser.parse(value)
+              const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
+              json.insertAction(processedOutput)
             }
           }
-        })
-        const output = parser.parse(value || '')
-        const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
-        setParseStr(processedOutput)
+        }
+
+
+        // if (typeof output === 'object') {
+        //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
+        //   if (errors.length === 0) {
+        //     onSuccess?.(processedOutput)
+        //   } else {
+        //     onError?.({ e: errors.map((error) => error.message), output: processedOutput })
+        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+        //   }
+        // } else {
+        //   if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
+        //     && !(typeof output === 'string' && defaultReturnType === 'script')
+        //   ) {
+        //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
+        //     onError?.({ e: [message], output: undefined })
+        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+        //       message,
+        //       severity: 8,
+        //       startLineNumber: 0,
+        //       startColumn: 0,
+        //       endLineNumber: 0,
+        //       endColumn: value?.length || 0,
+        //     }])
+        //   } else {
+        //     onSuccess?.(processedOutput)
+        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+        //   }
+        // }
+
+        const jsonData = json.generateRawJSON()
+        setParseStr(jsonData)
         // TODO: add gameData
         setConvertedStr(actionToString({
-          o: processedOutput, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
+          o: jsonData, parentKey: '', defaultReturnType: defaultReturnType || '', gameData: { unitTypes: {} }
         }))
-        monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-        if (typeof output === 'object') {
-          const errors = checkTypeIsValid(value || '', output, defaultReturnType)
-          if (errors.length === 0) {
-            onSuccess?.(processedOutput)
-          } else {
-            onError?.({ e: errors.map((error) => error.message), output: processedOutput })
-            monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
-          }
-        } else {
-          if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
-            && !(typeof output === 'string' && defaultReturnType === 'script')
-          ) {
-            const message = `expect ${defaultReturnType} here, but got ${typeof output}`
-            onError?.({ e: [message], output: undefined })
-            monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-              message,
-              severity: 8,
-              startLineNumber: 0,
-              startColumn: 0,
-              endLineNumber: 0,
-              endColumn: value?.length || 0,
-            }])
-          } else {
-            onSuccess?.(processedOutput)
-            monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-          }
-        }
+        onSuccess?.(jsonData)
       } catch (e: any) {
-        const error: TextScriptErrorProps | Error = e
-        setParseStr(e)
-        if (editorRef.current && monacoRef.current) {
-          const monaco = monacoRef.current
-          const editor = editorRef.current
-          const model = editor.getModel()
-          if (model) {
-            const markers: editor.IMarkerData[] = []
-            const errorHash = (error as TextScriptErrorProps).hash
-            if (errorHash) {
-              if (errorHash.expected) {
-                const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
-                onError?.({ e: [message], output: undefined })
-                markers.push({
-                  message,
-                  severity: monaco.MarkerSeverity.Error,
-                  startLineNumber: errorHash.loc.first_line,
-                  startColumn: errorHash.loc.first_column,
-                  endLineNumber: errorHash.loc.last_line,
-                  endColumn: errorHash.loc.last_column,
-                });
-              }
-            } else {
-              const code = model.getValue();
-              const undefinedName = code.replace(' is undefined', '')
-              const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
-              onError?.({ e: [e.message as string], output: undefined })
-              markers.push({
-                message: e.message as string,
-                severity: monaco.MarkerSeverity.Error,
-                startLineNumber: 0,
-                startColumn,
-                endLineNumber: 0,
-                endColumn,
-              }
-              )
-            }
-            monaco.editor.setModelMarkers(model, 'owner', markers)
-          }
-        }
+        // const error: TextScriptErrorProps | Error = e
+        // setParseStr(e)
+        // if (editorRef.current && monacoRef.current) {
+        //   const monaco = monacoRef.current
+        //   const editor = editorRef.current
+        //   const model = editor.getModel()
+        //   if (model) {
+        //     const markers: editor.IMarkerData[] = []
+        //     const errorHash = (error as TextScriptErrorProps).hash
+        //     if (errorHash) {
+        //       if (errorHash.expected) {
+        //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
+        //         onError?.({ e: [message], output: undefined })
+        //         markers.push({
+        //           message,
+        //           severity: monaco.MarkerSeverity.Error,
+        //           startLineNumber: errorHash.loc.first_line,
+        //           startColumn: errorHash.loc.first_column,
+        //           endLineNumber: errorHash.loc.last_line,
+        //           endColumn: errorHash.loc.last_column,
+        //         });
+        //       }
+        //     } else {
+        //       const code = model.getValue();
+        //       const undefinedName = code.replace(' is undefined', '')
+        //       const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
+        //       onError?.({ e: [e.message as string], output: undefined })
+        //       markers.push({
+        //         message: e.message as string,
+        //         severity: monaco.MarkerSeverity.Error,
+        //         startLineNumber: 0,
+        //         startColumn,
+        //         endLineNumber: 0,
+        //         endColumn,
+        //       }
+        //       )
+        //     }
+        //     monaco.editor.setModelMarkers(model, 'owner', markers)
+        //   }
+        // }
       }
     }
   }
 
   const init = (monaco: Monaco) => {
     // Register a tokens provider for the language
-    disposableRef.current.push(monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT + idx, languageDef))
+    disposableRef.current.push(monaco.languages.setMonarchTokensProvider(MODDIOSCRIPT, languageDef))
     // Set the editing configuration for the language
-    disposableRef.current.push(monaco.languages.setLanguageConfiguration(MODDIOSCRIPT + idx, configuration))
-    disposableRef.current.push(monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT + idx, {
+    disposableRef.current.push(monaco.languages.setLanguageConfiguration(MODDIOSCRIPT, configuration))
+    disposableRef.current.push(monaco.languages.registerCompletionItemProvider(MODDIOSCRIPT, {
       triggerCharacters,
       provideCompletionItems: (model, position, context, token) => {
         let word = model.getWordUntilPosition(position);
@@ -183,7 +212,7 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
       },
     }))
     // TODO: finish signatureHelp provider
-    disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT + idx, {
+    disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
       signatureHelpTriggerCharacters: triggerCharactersWithNumber,
       provideSignatureHelp: async (model, position, token, context) => {
         const code = model.getValue();
@@ -242,7 +271,7 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
     <>
       {debug && <textarea
         placeholder='place ur script raw json here'
-        style={{ width: '100%', height: 200}}
+        style={{ width: '100%', height: 200 }}
         onChange={e => {
           try {
             editorRef.current?.setValue(actionToString({ o: JSON.parse(e.currentTarget.value), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
@@ -252,19 +281,19 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
 
         }}></textarea>}
       <Editor
-        language={MODDIOSCRIPT + idx}
+        language={MODDIOSCRIPT}
         theme="vs-dark"
-        options={{}}
+        options={{ minimap: { enabled: false } }}
         height={'100vh'}
         beforeMount={(monaco) => {
           monacoRef.current = monaco
           // Register a new language
-          monaco.languages.register({ id: MODDIOSCRIPT + idx })
+          monaco.languages.register({ id: MODDIOSCRIPT })
           init(monaco)
         }}
         onMount={editor => {
           editorRef.current = editor
-
+          editor.getModel()?.setEOL(0)
           // detect tab click
           editor.onKeyDown((e) => {
             if (e.keyCode === 2) {
@@ -275,15 +304,15 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
           editor.setValue(defaultValue)
           stringToAction(defaultValue)
           //@ts-ignore, the type define is wrong, editor have onDidType
-          editor.onDidType((v) => {
-            editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
-          })
+          // editor.onDidType((v) => {
+          //   editor.trigger('anything', 'editor.action.triggerParameterHints', () => { })
+          // })
 
-          editor.onKeyDown(e => {
-            if (e.code === "Enter") {
-              editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
-            }
-          })
+          // editor.onKeyDown(e => {
+          //   if (e.code === "Enter") {
+          //     editor.trigger('anything', 'acceptSelectedSuggestion', () => { })
+          //   }
+          // })
 
           // deal with user paste
           // see: https://github.com/microsoft/monaco-editor/issues/2009#issue-63987720
@@ -310,4 +339,4 @@ const TextScriptEditor: React.FC<TextScriptEditorMultilineProps> = ({ idx, onSuc
   )
 }
 
-export default TextScriptEditor
+export default TextScriptEditorMultiline

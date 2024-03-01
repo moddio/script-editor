@@ -24,7 +24,20 @@ type Story = StoryObj<typeof meta>;
 export const Editor: Story = {
   args: {
     debug: true,
-    idx: 0,
+    rawJSON: {
+      triggers: [],
+      isProtected: true,
+      conditions: [{
+        operator: "==",
+        operandType: "boolean"
+      }, true, true],
+      actions: [],
+      name: 'test',
+      parent: null,
+      key: '',
+      order: 0
+    },
+    scriptId: '',
     defaultReturnType: 'unitType',
     onError: (e) => { console.log(e) },
     onSuccess: (str) => { console.log(str) },
