@@ -61,7 +61,7 @@ export const getReturnType = (functionName: string) => {
 }
 
 export const getInputProps = (functionProps: FunctionProps) => {
-  const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
+  const targetAction = getActions().find((obj) => (aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key) === functionProps.functionName || obj.key === functionProps.functionName)
   if (targetAction) {
     switch (targetAction.key) {
       case 'runScript': {
@@ -230,6 +230,39 @@ export const orderSuggestions = (arr: any[], inputProps: string, defaultReturnTy
 
 export const defaultReturnTypeFilter = (defaultReturnType: string | undefined, inputProps: string, category: string | undefined) =>
   inputProps === '' && (!defaultReturnType || category === defaultReturnType)
+
+export interface movedStringProps {
+  currentString: string,
+  nextLineString: string
+}
+
+export const moveStringToNextLine = (s: string): movedStringProps => {
+  let movedString: movedStringProps = {
+    currentString: s,
+    nextLineString: ''
+  }
+
+  E.runSync(SmartIterationString({
+    searchChar: [{ from: ["'"] }, { from: ["'"] }],
+    s,
+    idx: 0,
+    step: 1,
+    break: false,
+    funcToEachChar: (iter) => {
+      if (iter.s[iter.idx] === '{' && iter.idx !== 0) {
+        movedString.currentString = iter.s.slice(0, iter.idx)
+        movedString.nextLineString = iter.s.slice(iter.idx, iter.s.length)
+        iter.break = true
+      }
+      if (iter.s[iter.idx] === '}') {
+        // TODO: handle }
+      }
+      return iter
+    }
+  }))
+
+  return movedString
+}
 
 export const getFunctionProps = (s: string, cursorPos: number): FunctionProps => {
   let output: FunctionProps = {

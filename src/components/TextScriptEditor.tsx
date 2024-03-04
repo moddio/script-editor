@@ -176,11 +176,11 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onE
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
             kind: suggestionType === FUNC ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
-            insertText: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            insertText: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
             // TODO: add documentation
@@ -233,7 +233,7 @@ const TextScriptEditor: React.FC<TextScriptEditorProps> = ({ idx, onSuccess, onE
         const code = model.getValue();
         let cursorPos = model.getOffsetAt(position);
         const functionProps = getFunctionProps(code, Math.max(0, cursorPos - 1))
-        const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName)
+        const targetAction = getActions().find((obj) => (aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
         const signatures: languages.SignatureHelp['signatures'] = !targetAction || functionProps.functionName === 'undefined' ? [] :
           [

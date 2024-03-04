@@ -4,10 +4,10 @@ import { languageDef, configuration, OPTIONS, FUNC } from '../constants/monacoCo
 import React, { LegacyRef, useEffect, useRef, useState } from 'react'
 import { IDisposable, editor, languages } from 'monaco-editor'
 import { aliasTable, parser, actionToString, noBracketsFuncs } from 'script-parser'
-import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput } from '../utils/actions'
+import { checkSuggestions, getSuggestionType, checkIsWrappedInQuotes, checkTypeIsValid, findFunctionPos, getActions, getInputProps, getFunctionProps, postProcessOutput, movedStringProps, moveStringToNextLine } from '../utils/actions'
 import { findString } from '../utils/string'
 import { ExtraDataProps, TextScriptErrorProps, triggerCharacters, triggerCharactersWithNumber } from './TextScriptEditor'
-import RawJSONGenerator from '../utils/rawJSONGenerator'
+import RawJSONGenerator, { STRUCTS } from '../utils/rawJSONGenerator'
 import { RawJSON } from '../constants/types'
 
 interface TextScriptEditorMultilineProps {
@@ -69,8 +69,27 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         const json = new RawJSONGenerator({ name, key, order, parent, isProtected })
         const splitLine = v?.split('\n')
         if (splitLine) {
+          let movedString: movedStringProps = {
+            currentString: '',
+            nextLineString: '',
+          }
           for (let i = 0; i < splitLine.length; i++) {
-            let value = splitLine[i]
+            let clearStruct = false
+            let goNextKey = false
+            let value = movedString.nextLineString + splitLine[i]
+            const movedProps = moveStringToNextLine(value)
+            movedString.nextLineString = movedProps.nextLineString
+            value = movedProps.currentString
+
+            if (value.startsWith('{')) {
+              value = value.slice(1, value.length)
+              json.goToNextKey()
+            }
+            if (value.trim().endsWith('}')) {
+              value = value.slice(0, value.length - 1)
+              clearStruct = true
+            }
+            console.log(value, goNextKey, clearStruct)
             if (value !== '') {
               if (isComment(value)) {
                 json.insertComment(value.replace('//', '').trim())
@@ -79,6 +98,10 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               if (isTrigger(value)) {
                 json.insertTriggers(parser.parse(value))
                 continue
+              }
+              const funcProps = getFunctionProps(value, value.length - 1)
+              if (STRUCTS[funcProps.functionName as keyof typeof STRUCTS]) {
+                json.setStruct(funcProps.functionName as keyof typeof STRUCTS)
               }
               extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
                 if (value) {
@@ -97,6 +120,9 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               const output = parser.parse(value)
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               json.insertAction(processedOutput)
+            }
+            if (clearStruct) {
+              json.removeStruct()
             }
           }
         }
@@ -142,6 +168,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         }
         onSuccess?.(jsonData)
       } catch (e: any) {
+        console.log(e)
         // const error: TextScriptErrorProps | Error = e
         // setParseStr(e)
         // if (editorRef.current && monacoRef.current) {
@@ -201,18 +228,18 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           startColumn: word.startColumn,
           endColumn: word.endColumn,
         };
-        let cursorPos = model.getOffsetAt(position);
-        const code = model.getValue();
+        let cursorPos = position.column - 1;
+        const code = model.getLineContent(position.lineNumber);
         const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
           getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            label: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `${v.field}:${v.dataType}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
             kind: suggestionType === FUNC ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
-            insertText: `${aliasTable[obj.key] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+            insertText: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
               return `\${${idx + 1}:${v.field}}`
             }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
             // TODO: add documentation
@@ -247,7 +274,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         const code = model.getValue();
         let cursorPos = model.getOffsetAt(position);
         const functionProps = getFunctionProps(code, Math.max(0, cursorPos - 1))
-        const targetAction = getActions().find((obj) => (aliasTable[obj.key] ?? obj.key) === functionProps.functionName)
+        const targetAction = getActions().find((obj) => (aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')
         const signatures: languages.SignatureHelp['signatures'] = !targetAction || functionProps.functionName === 'undefined' ? [] :
           [
