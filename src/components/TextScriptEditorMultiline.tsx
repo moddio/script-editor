@@ -49,6 +49,8 @@ const replaceFunctionWithType = (a: Record<string, any>[]) => {
     return newObject
   })
 }
+
+const multiScopesStrings = ['else']
 const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ onSuccess, onError, rawJSON, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
   const [parseStr, setParseStr] = useState<string | object>('')
   const [convertedStr, setConvertedStr] = useState('')
@@ -75,21 +77,23 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           }
           for (let i = 0; i < splitLine.length; i++) {
             let clearStruct = false
-            let goNextKey = false
             let value = movedString.nextLineString + splitLine[i]
-            const movedProps = moveStringToNextLine(value)
+            const movedProps = moveStringToNextLine(value.trim())
             movedString.nextLineString = movedProps.nextLineString
-            value = movedProps.currentString
-
+            value = movedProps.currentString.trim()
             if (value.startsWith('{')) {
               value = value.slice(1, value.length)
               json.goToNextKey()
             }
-            if (value.trim().endsWith('}')) {
+            if (value.endsWith('}')) {
               value = value.slice(0, value.length - 1)
               clearStruct = true
             }
-            console.log(value, goNextKey, clearStruct)
+
+            if (multiScopesStrings.includes(value)) {
+              clearStruct = false
+              continue
+            }
             if (value !== '') {
               if (isComment(value)) {
                 json.insertComment(value.replace('//', '').trim())

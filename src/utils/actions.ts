@@ -254,8 +254,12 @@ export const moveStringToNextLine = (s: string): movedStringProps => {
         movedString.nextLineString = iter.s.slice(iter.idx, iter.s.length)
         iter.break = true
       }
-      if (iter.s[iter.idx] === '}') {
+      if (iter.s[iter.idx] === '}' && iter.idx !== iter.s.length - 1) {
         // TODO: handle }
+        const tmp = moveStringToNextLine(iter.s.slice(iter.idx + 1, iter.s.length))
+        movedString.nextLineString = tmp.nextLineString
+        movedString.currentString = tmp.currentString
+        iter.break = true
       }
       return iter
     }
