@@ -134,75 +134,75 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               json.insertAction(processedOutput, extraData)
               monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-              if (typeof output === 'object') {
-                const errors = checkTypeIsValid(value || '', output, defaultReturnType)
-                if (errors.length === 0) {
-                  onSuccess?.(processedOutput)
-                } else {
-                  onError?.({ e: errors.map((error) => error.message), output: processedOutput })
-                  // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
-                }
-              } else {
-                if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
-                  && !(typeof output === 'string' && defaultReturnType === 'script')
-                ) {
-                  const message = `expect ${defaultReturnType} here, but got ${typeof output}`
-                  onError?.({ e: [message], output: undefined })
-                  // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-                  //   message,
-                  //   severity: 8,
-                  //   startLineNumber: i + 1,
-                  //   startColumn: 0,
-                  //   endLineNumber: i + 1,
-                  //   endColumn: value?.length || 0,
-                  // }])
-                } else {
-                  onSuccess?.(processedOutput)
-                }
-              }
+              // if (typeof output === 'object') {
+              //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
+              //   if (errors.length === 0) {
+              //     onSuccess?.(processedOutput)
+              //   } else {
+              //     onError?.({ e: errors.map((error) => error.message), output: processedOutput })
+              //     // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+              //   }
+              // } else {
+              //   if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
+              //     && !(typeof output === 'string' && defaultReturnType === 'script')
+              //   ) {
+              //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
+              //     onError?.({ e: [message], output: undefined })
+              //     // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+              //     //   message,
+              //     //   severity: 8,
+              //     //   startLineNumber: i + 1,
+              //     //   startColumn: 0,
+              //     //   endLineNumber: i + 1,
+              //     //   endColumn: value?.length || 0,
+              //     // }])
+              //   } else {
+              //     onSuccess?.(processedOutput)
+              //   }
+              // }
             }
             if (clearStruct) {
               json.removeStruct(extraData)
             }
           } catch (e: any) {
-            const error: TextScriptErrorProps | Error = e
-            setParseStr(e)
-            if (editorRef.current && monacoRef.current) {
-              const monaco = monacoRef.current
-              const editor = editorRef.current
-              const model = editor.getModel()
-              if (model) {
-                const errorHash = (error as TextScriptErrorProps).hash
-                if (errorHash) {
-                  if (errorHash.expected) {
-                    const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
-                    onError?.({ e: [message], output: undefined })
-                    // markers.push({
-                    //   message,
-                    //   severity: monaco.MarkerSeverity.Error,
-                    //   startLineNumber: i + 1,
-                    //   startColumn: errorHash.loc.first_column,
-                    //   endLineNumber: errorHash.loc.last_line,
-                    //   endColumn: i + 1,
-                    // });
-                  }
-                } else {
-                  const undefinedName = value.replace(' is undefined', '')
-                  const { startColumn, endColumn } = findFunctionPos(value, undefinedName)
-                  onError?.({ e: [e.message as string], output: undefined })
-                  markers.push({
-                    message: e.message as string,
-                    severity: monaco.MarkerSeverity.Error,
-                    startLineNumber: i + 1,
-                    startColumn,
-                    endLineNumber: i + 1,
-                    endColumn,
-                  }
-                  )
-                }
+            // const error: TextScriptErrorProps | Error = e
+            // setParseStr(e)
+            // if (editorRef.current && monacoRef.current) {
+            //   const monaco = monacoRef.current
+            //   const editor = editorRef.current
+            //   const model = editor.getModel()
+            //   if (model) {
+            //     const errorHash = (error as TextScriptErrorProps).hash
+            //     if (errorHash) {
+            //       if (errorHash.expected) {
+            //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
+            //         onError?.({ e: [message], output: undefined })
+            //         // markers.push({
+            //         //   message,
+            //         //   severity: monaco.MarkerSeverity.Error,
+            //         //   startLineNumber: i + 1,
+            //         //   startColumn: errorHash.loc.first_column,
+            //         //   endLineNumber: errorHash.loc.last_line,
+            //         //   endColumn: i + 1,
+            //         // });
+            //       }
+            //     } else {
+            //       const undefinedName = value.replace(' is undefined', '')
+            //       const { startColumn, endColumn } = findFunctionPos(value, undefinedName)
+            //       onError?.({ e: [e.message as string], output: undefined })
+            //       markers.push({
+            //         message: e.message as string,
+            //         severity: monaco.MarkerSeverity.Error,
+            //         startLineNumber: i + 1,
+            //         startColumn,
+            //         endLineNumber: i + 1,
+            //         endColumn,
+            //       }
+            //       )
+            //     }
 
-              }
-            }
+            //   }
+            // }
           }
         }
         monaco!.editor.setModelMarkers(model!, 'owner', markers)
