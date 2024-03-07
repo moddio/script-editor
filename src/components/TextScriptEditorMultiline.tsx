@@ -336,7 +336,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
       init(monacoRef.current)
     }
 
-  }, [defaultReturnType, extraSuggestions, parseStr])
+  }, [defaultReturnType, extraSuggestions])
 
   useEffect(() => {
     editorRef?.current?.setValue(defaultValue)
