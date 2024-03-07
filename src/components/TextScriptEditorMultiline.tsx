@@ -9,6 +9,7 @@ import { findString } from '../utils/string'
 import { ExtraDataProps, TextScriptErrorProps, triggerCharacters, triggerCharactersWithNumber } from './TextScriptEditor'
 import RawJSONGenerator, { STRUCTS } from '../utils/rawJSONGenerator'
 import { RawJSON } from '../constants/types'
+import { getTriggers } from '../utils/triggers'
 
 interface TextScriptEditorMultilineProps {
   debug: boolean,
@@ -123,10 +124,10 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               })
               const output = parser.parse(value)
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
-              json.insertAction(processedOutput)
+              json.insertAction(processedOutput, extraData)
             }
             if (clearStruct) {
-              json.removeStruct()
+              json.removeStruct(extraData)
             }
           }
         }
@@ -237,22 +238,34 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         const suggestionType = getSuggestionType(code, Math.max(0, cursorPos - 1))
         const needBrackets = (obj: any) => suggestionType === FUNC && !noBracketsFuncs.includes(obj.key)
         const inputProps = getInputProps(getFunctionProps(code, Math.max(0, cursorPos - 1)))
+        const isTrigger = code.trim().startsWith('@')
         const suggestions: languages.CompletionItem[] = checkIsWrappedInQuotes(code, Math.max(0, cursorPos - 1)) ? [] :
-          getActions().map((obj, orderIdx) => ({
-            label: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
-              return `${v.field}:${v.dataType}`
-            }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
-            kind: suggestionType === FUNC ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
-            insertText: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
-              return `\${${idx + 1}:${v.field}}`
-            }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
-            // TODO: add documentation
-            sortText: checkSuggestions(obj, inputProps, defaultReturnType),
-            documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
+          isTrigger ? getTriggers().map((obj, orderIdx) => ({
+            label: obj.key,
+            kind: monaco.languages.CompletionItemKind.Event,
+            insertText: obj.key,
+            sortText: 'a',
+            documentation: obj.title,
             insertTextRules: 4,
             detail: obj.title,
             range,
           }))
+
+            : getActions().map((obj, orderIdx) => ({
+              label: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+                return `${v.field}:${v.dataType}`
+              }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}: ${obj.data.category}`,
+              kind: suggestionType === FUNC ? monaco.languages.CompletionItemKind.Function : monaco.languages.CompletionItemKind.Property,
+              insertText: `${aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key}${needBrackets(obj) ? '(' : ''}${suggestionType === FUNC ? obj.data.fragments.filter((v: any) => v.type === 'variable').map((v: any, idx: number) => {
+                return `\${${idx + 1}:${v.field}}`
+              }).join(', ') : ''}${needBrackets(obj) ? ')' : ''}`,
+              // TODO: add documentation
+              sortText: checkSuggestions(obj, inputProps, defaultReturnType),
+              documentation: (obj as any).data.fragments.filter((v: any) => v.type === 'constant')[0]?.text,
+              insertTextRules: 4,
+              detail: obj.title,
+              range,
+            }))
         const extra: languages.CompletionItem[] = []
         if (extraSuggestions) {
           Object.keys(extraSuggestions)?.forEach((key) => {
@@ -275,8 +288,8 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
     disposableRef.current.push(monaco.languages.registerSignatureHelpProvider(MODDIOSCRIPT, {
       signatureHelpTriggerCharacters: triggerCharactersWithNumber,
       provideSignatureHelp: async (model, position, token, context) => {
-        const code = model.getValue();
-        let cursorPos = model.getOffsetAt(position);
+        let cursorPos = position.column - 1;
+        const code = model.getLineContent(position.lineNumber);
         const functionProps = getFunctionProps(code, Math.max(0, cursorPos - 1))
         const targetAction = getActions().find((obj) => (aliasTable[obj.key as keyof typeof aliasTable] ?? obj.key) === functionProps.functionName)
         const targetFrag: any = targetAction?.data.fragments.filter((frag: any) => frag.type === 'variable')

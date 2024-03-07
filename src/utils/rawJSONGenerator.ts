@@ -1,5 +1,8 @@
+import { ExtraDataProps } from "../components/TextScriptEditor";
 import { RawJSON } from "../constants/types";
-
+import { postProcessOutput } from "./actions";
+import { removeUnusedProperties } from "./obj";
+const SKIPS = ["_startIdx", "_variant"]
 export const STRUCTS = {
   if: {
     type: "condition",
@@ -7,7 +10,86 @@ export const STRUCTS = {
     then: [],
     else: [],
     _startIdx: 1,
-  }
+  },
+  forAllItems: {
+    type: "forAllItems",
+    itemGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  while: {
+    type: "while",
+    conditions: null,
+    actions: [],
+    _startIdx: 1,
+  },
+  repeat: {
+    type: "repeat",
+    count: null,
+    actions: [],
+    _startIdx: 1,
+  },
+  forAllEntities: {
+    type: "forAllEntities",
+    entityGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllItemTypes: {
+    type: "forAllItemTypes",
+    itemTypeGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllProjectiles: {
+    type: "forAllProjectiles",
+    projectileGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllRegions: {
+    type: "forAllRegions",
+    regionGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllUnitTypes: {
+    type: "forAllUnitTypes",
+    unitTypeGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllPlayers: {
+    type: "forAllPlayers",
+    playerGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  for: {
+    type: "forAllUnitTypes",
+    _variant: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllDebris: {
+    type: "forAllDebris",
+    debrisGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forAllUnits: {
+    type: "forAllUnits",
+    unitGroup: null,
+    actions: [],
+    _startIdx: 1
+  },
+  forIn: {
+    type: "forIn",
+    _variant: null,
+    actions: [],
+    _startIdx: 1
+  },
+
 }
 
 export default class RawJSONGenerator {
@@ -56,41 +138,53 @@ export default class RawJSONGenerator {
     }
   }
 
-  public removeStruct() {
+  public removeStruct(extraData?: ExtraDataProps) {
     if (this._nextStruct.length > 0) {
       if (this._nextStruct.length === 1) {
-        this._actions.push(this._nextStruct[this._nextStruct.length - 1].struct)
+        this._actions.push(postProcessOutput(this._nextStruct[this._nextStruct.length - 1].struct, extraData))
         this._nextStruct = []
       } else {
         const keys = Object.keys(this._nextStruct[this._nextStruct.length - 2].struct)
         const key = keys[this._nextStruct[this._nextStruct.length - 2].currentKeyIdx]
         const nowObj: any = (this._nextStruct[this._nextStruct.length - 2].struct as any)[key];
         const action = this._nextStruct[this._nextStruct.length - 1].struct
+        if (!SKIPS.includes(key)) {
+
+          if (nowObj === null) {
+            (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
+          } else {
+            if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
+              nowObj.push(action)
+            }
+          }
+        }
+        this._nextStruct = this._nextStruct.splice(this._nextStruct.length - 2, 1)
+      }
+
+    }
+  }
+
+  public insertAction(action: Record<string, any> | Array<any>, extraData?: ExtraDataProps) {
+    if (this._nextStruct.length > 0) {
+      const keys = Object.keys(this._nextStruct[this._nextStruct.length - 1].struct)
+      const key = keys[this._nextStruct[this._nextStruct.length - 1].currentKeyIdx]
+      const nowObj: any = (this._nextStruct[this._nextStruct.length - 1].struct as any)[key];
+      if (key === '_variant') {
+        Object.keys(action).forEach((k) => {
+          if (!SKIPS.includes(k)) {
+            (this._nextStruct[this._nextStruct.length - 1].struct as any)[k] = action[k as keyof typeof action]
+          }
+        })
+      } else {
         if (nowObj === null) {
-          (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
+          (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action[key as keyof typeof action] as Array<any> ?? action
         } else {
           if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
             nowObj.push(action)
           }
         }
-        this._nextStruct = this._nextStruct.splice(this._nextStruct.length - 2, 1)
       }
-      
-    }
-  }
 
-  public insertAction(action: Record<string, any> | Array<any>) {
-    if (this._nextStruct.length > 0) {
-      const keys = Object.keys(this._nextStruct[this._nextStruct.length - 1].struct)
-      const key = keys[this._nextStruct[this._nextStruct.length - 1].currentKeyIdx]
-      const nowObj: any = (this._nextStruct[this._nextStruct.length - 1].struct as any)[key];
-      if (nowObj === null) {
-        (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action as Array<any>
-      } else {
-        if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-          nowObj.push(action)
-        }
-      }
 
       // if (this._nextStruct[this._nextStruct.length - 1].currentKeyIdx === keys.length - 2) {
       //   this.removeStruct()
@@ -101,7 +195,7 @@ export default class RawJSONGenerator {
         newAction.comment = this._unUsedComment
         this._unUsedComment = ''
       }
-      this._actions.push(newAction)
+      this._actions.push(postProcessOutput(newAction, extraData))
     }
 
   }
