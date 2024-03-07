@@ -81,10 +81,9 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         const monaco = monacoRef.current
         const editor = editorRef.current
         const model = editor!.getModel()
-        let value = ''
         for (let i = 0; i < splitLine.length; i++) {
           try {
-
+            let value = ''
             let clearStruct = false
             value = movedString.nextLineString + splitLine[i]
             const movedProps = moveStringToNextLine(value.trim())
@@ -337,7 +336,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
       init(monacoRef.current)
     }
 
-  }, [defaultReturnType, extraSuggestions, parseStr])
+  }, [defaultReturnType, extraSuggestions, parseStr, defaultValue])
 
   useEffect(() => {
     return () => {
