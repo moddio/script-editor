@@ -341,7 +341,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
   }, [])
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', width: '100%' }}>
       {debug && <Editor
         value={formatJSON(JSON.stringify(parseStr))}
         theme="vs-dark"
