@@ -340,7 +340,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
 
   useEffect(() => {
     editorRef?.current?.setValue(defaultValue)
-  }, [defaultValue])
+  }, [rawJSON.parent])
 
   useEffect(() => {
     return () => {
