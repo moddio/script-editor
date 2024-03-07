@@ -76,90 +76,137 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             currentString: '',
             nextLineString: '',
           }
-          for (let i = 0; i < splitLine.length; i++) {
-            let clearStruct = false
-            let value = movedString.nextLineString + splitLine[i]
-            const movedProps = moveStringToNextLine(value.trim())
-            movedString.nextLineString = movedProps.nextLineString
-            value = movedProps.currentString.trim()
-            if (value.startsWith('{')) {
-              value = value.slice(1, value.length)
-              json.goToNextKey()
-            }
-            if (value.endsWith('}')) {
-              value = value.slice(0, value.length - 1)
-              clearStruct = true
-            }
+          const markers: editor.IMarkerData[] = []
 
-            if (multiScopesStrings.includes(value)) {
-              clearStruct = false
-              continue
-            }
-            if (value !== '') {
-              if (isComment(value)) {
-                json.insertComment(value.replace('//', '').trim())
+          const monaco = monacoRef.current
+          const editor = editorRef.current
+          const model = editor!.getModel()
+          let value = ''
+          for (let i = 0; i < splitLine.length; i++) {
+            try {
+
+              let clearStruct = false
+              value = movedString.nextLineString + splitLine[i]
+              const movedProps = moveStringToNextLine(value.trim())
+              movedString.nextLineString = movedProps.nextLineString
+              value = movedProps.currentString.trim()
+              if (value.startsWith('{')) {
+                value = value.slice(1, value.length)
+                json.goToNextKey()
+              }
+              if (value.endsWith('}')) {
+                value = value.slice(0, value.length - 1)
+                clearStruct = true
+              }
+
+              if (multiScopesStrings.includes(value)) {
+                clearStruct = false
                 continue
               }
-              if (isTrigger(value)) {
-                json.insertTriggers(parser.parse(value))
-                continue
-              }
-              const funcProps = getFunctionProps(value, value.length - 1)
-              if (STRUCTS[funcProps.functionName as keyof typeof STRUCTS]) {
-                json.setStruct(funcProps.functionName as keyof typeof STRUCTS)
-              }
-              extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
-                if (value) {
-                  switch (defaultReturnType) {
-                    case 'unitType': {
-                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
-                      break;
-                    }
-                    case 'script': {
-                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
-                      break;
+              if (value !== '') {
+                if (isComment(value)) {
+                  json.insertComment(value.replace('//', '').trim())
+                  continue
+                }
+                if (isTrigger(value)) {
+                  json.insertTriggers(parser.parse(value))
+                  continue
+                }
+                const funcProps = getFunctionProps(value, value.length - 1)
+                if (STRUCTS[funcProps.functionName as keyof typeof STRUCTS]) {
+                  json.setStruct(funcProps.functionName as keyof typeof STRUCTS)
+                }
+                extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
+                  if (value) {
+                    switch (defaultReturnType) {
+                      case 'unitType': {
+                        value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                        break;
+                      }
+                      case 'script': {
+                        value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                        break;
+                      }
                     }
                   }
+                })
+                const output = parser.parse(value)
+                const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
+                json.insertAction(processedOutput, extraData)
+                monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+                if (typeof output === 'object') {
+                  const errors = checkTypeIsValid(value || '', output, defaultReturnType)
+                  if (errors.length === 0) {
+                    onSuccess?.(processedOutput)
+                  } else {
+                    onError?.({ e: errors.map((error) => error.message), output: processedOutput })
+                    // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
+                  }
+                } else {
+                  if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
+                    && !(typeof output === 'string' && defaultReturnType === 'script')
+                  ) {
+                    const message = `expect ${defaultReturnType} here, but got ${typeof output}`
+                    onError?.({ e: [message], output: undefined })
+                    monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+                      message,
+                      severity: 8,
+                      startLineNumber: i + 1,
+                      startColumn: 0,
+                      endLineNumber: i + 1,
+                      endColumn: value?.length || 0,
+                    }])
+                  } else {
+                    onSuccess?.(processedOutput)
+                  }
                 }
-              })
-              const output = parser.parse(value)
-              const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
-              json.insertAction(processedOutput, extraData)
-            }
-            if (clearStruct) {
-              json.removeStruct(extraData)
+              }
+              if (clearStruct) {
+                json.removeStruct(extraData)
+              }
+            } catch (e: any) {
+              const error: TextScriptErrorProps | Error = e
+              setParseStr(e)
+              if (editorRef.current && monacoRef.current) {
+                const monaco = monacoRef.current
+                const editor = editorRef.current
+                const model = editor.getModel()
+                if (model) {
+                  const errorHash = (error as TextScriptErrorProps).hash
+                  if (errorHash) {
+                    if (errorHash.expected) {
+                      const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
+                      onError?.({ e: [message], output: undefined })
+                      markers.push({
+                        message,
+                        severity: monaco.MarkerSeverity.Error,
+                        startLineNumber: i + 1,
+                        startColumn: errorHash.loc.first_column,
+                        endLineNumber: errorHash.loc.last_line,
+                        endColumn: i + 1,
+                      });
+                    }
+                  } else {
+                    const undefinedName = value.replace(' is undefined', '')
+                    const { startColumn, endColumn } = findFunctionPos(value, undefinedName)
+                    onError?.({ e: [e.message as string], output: undefined })
+                    markers.push({
+                      message: e.message as string,
+                      severity: monaco.MarkerSeverity.Error,
+                      startLineNumber: i + 1,
+                      startColumn,
+                      endLineNumber: i + 1,
+                      endColumn,
+                    }
+                    )
+                  }
+
+                }
+              }
             }
           }
+          monaco!.editor.setModelMarkers(model!, 'owner', markers)
         }
-
-
-        // if (typeof output === 'object') {
-        //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
-        //   if (errors.length === 0) {
-        //     onSuccess?.(processedOutput)
-        //   } else {
-        //     onError?.({ e: errors.map((error) => error.message), output: processedOutput })
-        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
-        //   }
-        // } else {
-        //   if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
-        //     && !(typeof output === 'string' && defaultReturnType === 'script')
-        //   ) {
-        //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
-        //     onError?.({ e: [message], output: undefined })
-        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-        //       message,
-        //       severity: 8,
-        //       startLineNumber: 0,
-        //       startColumn: 0,
-        //       endLineNumber: 0,
-        //       endColumn: value?.length || 0,
-        //     }])
-        //   } else {
-        //     onSuccess?.(processedOutput)
-        //     monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-        //   }
-        // }
 
         const jsonData = json.generateRawJSON()
         jsonData.actions = replaceFunctionWithType(jsonData.actions)
@@ -173,47 +220,46 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         }
         onSuccess?.(jsonData)
       } catch (e: any) {
-        console.log(e)
-        // const error: TextScriptErrorProps | Error = e
-        // setParseStr(e)
-        // if (editorRef.current && monacoRef.current) {
-        //   const monaco = monacoRef.current
-        //   const editor = editorRef.current
-        //   const model = editor.getModel()
-        //   if (model) {
-        //     const markers: editor.IMarkerData[] = []
-        //     const errorHash = (error as TextScriptErrorProps).hash
-        //     if (errorHash) {
-        //       if (errorHash.expected) {
-        //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
-        //         onError?.({ e: [message], output: undefined })
-        //         markers.push({
-        //           message,
-        //           severity: monaco.MarkerSeverity.Error,
-        //           startLineNumber: errorHash.loc.first_line,
-        //           startColumn: errorHash.loc.first_column,
-        //           endLineNumber: errorHash.loc.last_line,
-        //           endColumn: errorHash.loc.last_column,
-        //         });
-        //       }
-        //     } else {
-        //       const code = model.getValue();
-        //       const undefinedName = code.replace(' is undefined', '')
-        //       const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
-        //       onError?.({ e: [e.message as string], output: undefined })
-        //       markers.push({
-        //         message: e.message as string,
-        //         severity: monaco.MarkerSeverity.Error,
-        //         startLineNumber: 0,
-        //         startColumn,
-        //         endLineNumber: 0,
-        //         endColumn,
-        //       }
-        //       )
-        //     }
-        //     monaco.editor.setModelMarkers(model, 'owner', markers)
-        //   }
-        // }
+        const error: TextScriptErrorProps | Error = e
+        setParseStr(e)
+        if (editorRef.current && monacoRef.current) {
+          const monaco = monacoRef.current
+          const editor = editorRef.current
+          const model = editor.getModel()
+          if (model) {
+            const markers: editor.IMarkerData[] = []
+            const errorHash = (error as TextScriptErrorProps).hash
+            if (errorHash) {
+              if (errorHash.expected) {
+                const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
+                onError?.({ e: [message], output: undefined })
+                markers.push({
+                  message,
+                  severity: monaco.MarkerSeverity.Error,
+                  startLineNumber: errorHash.loc.first_line,
+                  startColumn: errorHash.loc.first_column,
+                  endLineNumber: errorHash.loc.last_line,
+                  endColumn: errorHash.loc.last_column,
+                });
+              }
+            } else {
+              const code = model.getValue();
+              const undefinedName = code.replace(' is undefined', '')
+              const { startColumn, endColumn } = findFunctionPos(code, undefinedName)
+              onError?.({ e: [e.message as string], output: undefined })
+              markers.push({
+                message: e.message as string,
+                severity: monaco.MarkerSeverity.Error,
+                startLineNumber: 0,
+                startColumn,
+                endLineNumber: 0,
+                endColumn,
+              }
+              )
+            }
+            monaco.editor.setModelMarkers(model, 'owner', markers)
+          }
+        }
       }
     }
   }
@@ -330,7 +376,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
       init(monacoRef.current)
     }
 
-  }, [defaultReturnType, extraSuggestions])
+  }, [defaultReturnType, extraSuggestions, parseStr])
 
   useEffect(() => {
     return () => {
