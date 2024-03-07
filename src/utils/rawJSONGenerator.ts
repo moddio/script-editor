@@ -154,7 +154,7 @@ export default class RawJSONGenerator {
             (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
           } else {
             if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-              nowObj.push(key === 'actions' ? replaceFunctionWithType(action as any) : action)
+              nowObj.push(key === 'actions' ? replaceFunctionWithType([action] as any) : action)
             }
           }
         }
@@ -180,7 +180,7 @@ export default class RawJSONGenerator {
           (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action[key as keyof typeof action] as Array<any> ?? action
         } else {
           if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-            nowObj.push(key === 'actions' ? replaceFunctionWithType(action as any) : action)
+            nowObj.push(key === 'actions' ? replaceFunctionWithType([action] as any) : action)
           }
         }
       }
