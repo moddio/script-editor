@@ -1,4 +1,5 @@
 import { ExtraDataProps } from "../components/TextScriptEditor";
+import { replaceFunctionWithType } from "../components/TextScriptEditorMultiline";
 import { RawJSON } from "../constants/types";
 import { postProcessOutput } from "./actions";
 import { removeUnusedProperties } from "./obj";
@@ -149,12 +150,11 @@ export default class RawJSONGenerator {
         const nowObj: any = (this._nextStruct[this._nextStruct.length - 2].struct as any)[key];
         const action = this._nextStruct[this._nextStruct.length - 1].struct
         if (!SKIPS.includes(key)) {
-
           if (nowObj === null) {
             (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
           } else {
             if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-              nowObj.push(action)
+              nowObj.push(key === 'actions' ? replaceFunctionWithType(action as any) : action)
             }
           }
         }
@@ -180,7 +180,7 @@ export default class RawJSONGenerator {
           (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action[key as keyof typeof action] as Array<any> ?? action
         } else {
           if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-            nowObj.push(action)
+            nowObj.push(key === 'actions' ? replaceFunctionWithType(action as any) : action)
           }
         }
       }

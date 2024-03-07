@@ -37,7 +37,7 @@ export function formatJSON(val: any = {}) {
 
 const isComment = (s: string) => s.trim().startsWith('//');
 const isTrigger = (s: string) => s.trim().startsWith('@');
-const replaceFunctionWithType = (a: Record<string, any>[]) => {
+export const replaceFunctionWithType = (a: Record<string, any>[]) => {
   return a.map((o) => {
     const newObject: any = {}
     Object.keys(o).forEach((k) => {
