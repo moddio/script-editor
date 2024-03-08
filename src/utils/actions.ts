@@ -281,7 +281,7 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
     step: -1,
     break: false,
     funcToJumpedChar: (iter) => {
-      if (iter.s[iter.idx] === '(') {
+      if (iter.s[iter.idx] === ')') {
         offset += 1
       }
       return iter
@@ -304,12 +304,10 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
         } else {
           output.functionName = ''
         }
-      }
-
+      }      
       return iter
     },
-  }))
-
+  }))  
   return output;
 }
 

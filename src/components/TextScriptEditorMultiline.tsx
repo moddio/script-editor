@@ -132,7 +132,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               const output = parser.parse(value)
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               json.insertAction(processedOutput, extraData)
-              monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
+              // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               // if (typeof output === 'object') {
               //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
               //   if (errors.length === 0) {
@@ -338,6 +338,9 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
 
   }, [defaultReturnType, extraSuggestions, rawJSON])
 
+  useEffect(() => {
+    editorRef?.current?.setValue(defaultValue)
+  }, [rawJSON])
 
   useEffect(() => {
     return () => {

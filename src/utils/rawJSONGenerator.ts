@@ -67,7 +67,7 @@ export const STRUCTS = {
     _startIdx: 1
   },
   for: {
-    type: "forAllUnitTypes",
+    type: "for",
     _variant: null,
     actions: [],
     _startIdx: 1
@@ -125,6 +125,9 @@ export default class RawJSONGenerator {
     this._triggers.push(trigger)
   }
 
+  public getNextStruct() {
+    return this._nextStruct
+  }
   public insertComment(comment: string) {
     this._unUsedComment += (this._unUsedComment !== '' ? '\n' : '') + comment;
   }
