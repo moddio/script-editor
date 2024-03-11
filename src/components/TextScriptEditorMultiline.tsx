@@ -352,19 +352,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
 
   return (
     <div style={{ display: 'flex', width: '100%' }}>
-      {debug && <Editor
-        value={formatJSON(JSON.stringify(parseStr))}
-        theme="vs-dark"
-        language='JSON'
-        height='100vh'
-        onChange={v => {
-          try {
-            editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
-          } catch (e) {
 
-          }
-
-        }} />}
       <Editor
         language={MODDIOSCRIPT}
         theme="vs-dark"
@@ -379,12 +367,6 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         onMount={editor => {
           editorRef.current = editor
           editor.getModel()?.setEOL(0)
-          // detect tab click
-          editor.onKeyDown((e) => {
-            if (e.keyCode === 2) {
-              e.stopPropagation();
-            }
-          });
 
           editor.setValue(defaultValue)
           stringToAction(defaultValue)
@@ -408,7 +390,21 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           stringToAction(v)
         }}
       />
-      {debug && (
+      {debug && <Editor
+        value={formatJSON(JSON.stringify(parseStr))}
+        theme="vs-dark"
+        language='JSON'
+        height='100vh'
+        width={'30%'}
+        onChange={v => {
+          try {
+            editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
+          } catch (e) {
+
+          }
+
+        }} />}
+      {/* {debug && (
         <div>
           <span style={{ backgroundColor: "orange" }}>output(raw json):</span>
           <pre>
@@ -419,7 +415,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             {convertedStr}
           </pre>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
