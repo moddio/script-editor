@@ -104,14 +104,17 @@ export default class RawJSONGenerator {
     true
   ];
   private _actions: Record<string, any>[] = [];
-  private _unUsedComment: string = '';
+  private _unUsedComment: string[] = [];
 
   private _name: string;
   private _parent: string | null;
   private _key: string;
   private _order: number;
   private _isProtected: boolean;
-  private _nextStruct: { currentKeyIdx: number, struct: typeof STRUCTS[keyof typeof STRUCTS] }[] = [];
+  private _nextStruct: {
+    currentKeyIdx: number,
+    struct: typeof STRUCTS[keyof typeof STRUCTS]
+  }[] = [];
 
   constructor({ name, parent, key, order, isProtected }: Pick<RawJSON, 'isProtected' | 'name' | 'parent' | 'key' | 'order'>) {
     this._name = name
@@ -128,12 +131,27 @@ export default class RawJSONGenerator {
   public getNextStruct() {
     return this._nextStruct
   }
-  public insertComment(comment: string) {
-    this._unUsedComment += (this._unUsedComment !== '' ? '\n' : '') + comment;
+  public insertComment(o: Record<string, any>) {
+    console.log(this._unUsedComment, o)
+    const comment = this._unUsedComment.pop()
+    if (comment !== '' && comment !== undefined) {
+      o.comment = comment
+    }
+  }
+
+  public handleUnusedComment(comment: string, forcePush: boolean = false) {
+    if (this._unUsedComment.length > 0 && forcePush !== true) {
+      const nowIdx = Math.max(this._unUsedComment.length - 1, 0)
+      this._unUsedComment[nowIdx] += (this._unUsedComment[nowIdx] !== '' ? '\n' : '') + comment;
+    } else {
+      this._unUsedComment.push(comment)
+    }
   }
 
   public setStruct(key: keyof typeof STRUCTS) {
     this._nextStruct.push({ currentKeyIdx: STRUCTS[key]._startIdx, struct: JSON.parse(JSON.stringify(STRUCTS[key])) })
+    this.handleUnusedComment('', true);
+    this.handleUnusedComment('', true);
   }
 
   public goToNextKey() {
@@ -145,13 +163,16 @@ export default class RawJSONGenerator {
   public removeStruct(extraData?: ExtraDataProps) {
     if (this._nextStruct.length > 0) {
       if (this._nextStruct.length === 1) {
-        this._actions.push(postProcessOutput(this._nextStruct[this._nextStruct.length - 1].struct, extraData))
+        const o = postProcessOutput(this._nextStruct[this._nextStruct.length - 1].struct, extraData)
+        this.insertComment(o)
+        this._actions.push(o)
         this._nextStruct = []
       } else {
         const keys = Object.keys(this._nextStruct[this._nextStruct.length - 2].struct)
         const key = keys[this._nextStruct[this._nextStruct.length - 2].currentKeyIdx]
         const nowObj: any = (this._nextStruct[this._nextStruct.length - 2].struct as any)[key];
         const action = this._nextStruct[this._nextStruct.length - 1].struct
+        this.insertComment(action)
         if (!SKIPS.includes(key)) {
           if (nowObj === null) {
             (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
@@ -178,7 +199,11 @@ export default class RawJSONGenerator {
             (this._nextStruct[this._nextStruct.length - 1].struct as any)[k] = action[k as keyof typeof action]
           }
         })
+        if (this._unUsedComment.length > 0) {
+          this.insertComment(this._nextStruct[this._nextStruct.length - 1].struct)
+        }
       } else {
+        this.insertComment(action)
         if (nowObj === null) {
           (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action[key as keyof typeof action] as Array<any> ?? action
         } else {
@@ -194,10 +219,7 @@ export default class RawJSONGenerator {
       // }
     } else {
       const newAction = action as Record<string, any>;
-      if (this._unUsedComment !== '') {
-        newAction.comment = this._unUsedComment
-        this._unUsedComment = ''
-      }
+      this.insertComment(newAction)
       this._actions.push(postProcessOutput(newAction, extraData))
     }
 

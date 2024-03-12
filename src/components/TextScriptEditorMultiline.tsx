@@ -104,7 +104,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             }
             if (value !== '') {
               if (isComment(value)) {
-                json.insertComment(value.replace('//', '').trim())
+                json.handleUnusedComment(value.replace('//', '').trim())
                 continue
               }
               if (isTrigger(value)) {
@@ -147,14 +147,14 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               //   ) {
               //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
               //     onError?.({ e: [message], output: undefined })
-              //     // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-              //     //   message,
-              //     //   severity: 8,
-              //     //   startLineNumber: i + 1,
-              //     //   startColumn: 0,
-              //     //   endLineNumber: i + 1,
-              //     //   endColumn: value?.length || 0,
-              //     // }])
+                  // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+                  //   message,
+                  //   severity: 8,
+                  //   startLineNumber: i + 1,
+                  //   startColumn: 0,
+                  //   endLineNumber: i + 1,
+                  //   endColumn: value?.length || 0,
+                  // }])
               //   } else {
               //     onSuccess?.(processedOutput)
               //   }
@@ -176,14 +176,14 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             //       if (errorHash.expected) {
             //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
             //         onError?.({ e: [message], output: undefined })
-            //         // markers.push({
-            //         //   message,
-            //         //   severity: monaco.MarkerSeverity.Error,
-            //         //   startLineNumber: i + 1,
-            //         //   startColumn: errorHash.loc.first_column,
-            //         //   endLineNumber: errorHash.loc.last_line,
-            //         //   endColumn: i + 1,
-            //         // });
+                    // markers.push({
+                    //   message,
+                    //   severity: monaco.MarkerSeverity.Error,
+                    //   startLineNumber: i + 1,
+                    //   startColumn: errorHash.loc.first_column,
+                    //   endLineNumber: errorHash.loc.last_line,
+                    //   endColumn: i + 1,
+                    // });
             //       }
             //     } else {
             //       const undefinedName = value.replace(' is undefined', '')
@@ -400,7 +400,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           try {
             editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
           } catch (e) {
-
+            console.log(e)
           }
 
         }} />}
