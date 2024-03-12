@@ -88,6 +88,7 @@ export const languageDef = {
       [/\s+/, "white"],
       [/\/\*/, 'comment', '@comment'],
       [/\/\/.*$/, 'comment'],
+      [/--.*$/, 'comment'],
     ],
     numbers: [
       // numbers

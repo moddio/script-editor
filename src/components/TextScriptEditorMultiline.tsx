@@ -37,6 +37,7 @@ export function formatJSON(val: any = {}) {
 
 const isComment = (s: string) => s.trim().startsWith('//');
 const isTrigger = (s: string) => s.trim().startsWith('@');
+const isDisabled = (s: string) => s.trim().startsWith('--');
 export const replaceFunctionWithType = (a: Record<string, any>[]) => {
   return a.map((o) => {
     const newObject: any = {}
@@ -104,12 +105,18 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             }
             if (value !== '') {
               if (isComment(value)) {
-                json.handleUnusedComment(value.replace('//', '').trim())
+                json.insertUnusedComment(value.replace('//', '').trim())
                 continue
               }
               if (isTrigger(value)) {
                 json.insertTriggers(parser.parse(value))
                 continue
+              }
+              if (isDisabled(value)) {
+                value = value.replace('--', '')
+                if (!value.trim().startsWith('{') && !value.trim().endsWith('}')) {
+                  json.insertUnusedDisabled()
+                }
               }
               const funcProps = getFunctionProps(value, value.length - 1)
               if (STRUCTS[funcProps.functionName as keyof typeof STRUCTS]) {
@@ -147,14 +154,14 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               //   ) {
               //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
               //     onError?.({ e: [message], output: undefined })
-                  // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-                  //   message,
-                  //   severity: 8,
-                  //   startLineNumber: i + 1,
-                  //   startColumn: 0,
-                  //   endLineNumber: i + 1,
-                  //   endColumn: value?.length || 0,
-                  // }])
+              // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
+              //   message,
+              //   severity: 8,
+              //   startLineNumber: i + 1,
+              //   startColumn: 0,
+              //   endLineNumber: i + 1,
+              //   endColumn: value?.length || 0,
+              // }])
               //   } else {
               //     onSuccess?.(processedOutput)
               //   }
@@ -176,14 +183,14 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             //       if (errorHash.expected) {
             //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
             //         onError?.({ e: [message], output: undefined })
-                    // markers.push({
-                    //   message,
-                    //   severity: monaco.MarkerSeverity.Error,
-                    //   startLineNumber: i + 1,
-                    //   startColumn: errorHash.loc.first_column,
-                    //   endLineNumber: errorHash.loc.last_line,
-                    //   endColumn: i + 1,
-                    // });
+            // markers.push({
+            //   message,
+            //   severity: monaco.MarkerSeverity.Error,
+            //   startLineNumber: i + 1,
+            //   startColumn: errorHash.loc.first_column,
+            //   endLineNumber: errorHash.loc.last_line,
+            //   endColumn: i + 1,
+            // });
             //       }
             //     } else {
             //       const undefinedName = value.replace(' is undefined', '')
