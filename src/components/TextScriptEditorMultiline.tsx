@@ -126,11 +126,11 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
                 if (value) {
                   switch (defaultReturnType) {
                     case 'unitType': {
-                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `${suggest.detail}`)
                       break;
                     }
                     case 'script': {
-                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `"${suggest.detail}"`)
+                      value = value.replaceAll(new RegExp(`\\b${suggest.insertText}\\b(?![^"]*")`, 'g'), `${suggest.detail}`)
                       break;
                     }
                   }
@@ -171,6 +171,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               json.removeStruct(extraData)
             }
           } catch (e: any) {
+            console.log(e)
             // const error: TextScriptErrorProps | Error = e
             // setParseStr(e)
             // if (editorRef.current && monacoRef.current) {

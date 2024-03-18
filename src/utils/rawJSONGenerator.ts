@@ -90,7 +90,18 @@ export const STRUCTS = {
     actions: [],
     _startIdx: 1
   },
-
+  setTimeOut: {
+    type: "setTimeOut",
+    duration: null,
+    actions: [],
+    _startIdx: 1
+  },
+  repeatWithDelay: {
+    type: "forIn",
+    _variant: null,
+    actions: [],
+    _startIdx: 1
+  }
 }
 
 export default class RawJSONGenerator {
