@@ -103,6 +103,10 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               clearStruct = false
               continue
             }
+            if (clearStruct) {
+              json.removeStruct(extraData)
+              continue
+            }
             if (value !== '') {
               if (isComment(value)) {
                 json.insertUnusedComment(value.replace('//', '').trim())
@@ -166,9 +170,6 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               //     onSuccess?.(processedOutput)
               //   }
               // }
-            }
-            if (clearStruct) {
-              json.removeStruct(extraData)
             }
           } catch (e: any) {
             console.log(e)

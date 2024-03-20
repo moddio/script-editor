@@ -274,6 +274,8 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
     functionParametersOffset: 0
   }
   let offset = 0;
+  s = s.trim()
+  cursorPos = Math.min(s.length - 1, cursorPos)
   E.runSync(SmartIterationString({
     searchChar: [{ from: ['"'] }, { from: ["'"] }, { from: [')'], to: '(' }],
     s,
@@ -308,6 +310,7 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
       return iter
     },
   }))  
+  console.log(output)
   return output;
 }
 
