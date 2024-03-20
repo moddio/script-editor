@@ -4,6 +4,7 @@ import { RawJSON } from "../constants/types";
 import { postProcessOutput } from "./actions";
 import { removeUnusedProperties } from "./obj";
 const SKIPS = ["_startIdx", "_variant"]
+const NEEDREPLACEKEYS = ['actions', 'then', 'else']
 export const STRUCTS = {
   if: {
     type: "condition",
@@ -203,7 +204,7 @@ export default class RawJSONGenerator {
             (this._nextStruct[this._nextStruct.length - 2].struct as any)[key] = action
           } else {
             if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-              nowObj.push(key === 'actions' ? replaceFunctionWithType([action] as any)[0] : action)
+              nowObj.push(NEEDREPLACEKEYS.includes(key) ? replaceFunctionWithType([action] as any)[0] : action)
             }
           }
         }
@@ -235,7 +236,7 @@ export default class RawJSONGenerator {
           (this._nextStruct[this._nextStruct.length - 1].struct as any)[key] = action[key as keyof typeof action] as Array<any> ?? action
         } else {
           if (typeof nowObj === 'object' && Array.isArray(nowObj)) {
-            nowObj.push(key === 'actions' ? replaceFunctionWithType([action] as any)[0] : action)
+            nowObj.push(NEEDREPLACEKEYS.includes(key) ? replaceFunctionWithType([action] as any)[0] : action)
           }
         }
       }
