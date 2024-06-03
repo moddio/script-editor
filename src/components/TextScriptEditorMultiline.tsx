@@ -404,7 +404,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         theme="vs-dark"
         language='JSON'
         height='100vh'
-        width={'30%'}
+        width={'65%'}
         onChange={v => {
           try {
             editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
