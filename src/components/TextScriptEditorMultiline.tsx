@@ -140,9 +140,12 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
                   }
                 }
               })
+
               const output = parser.parse(value)
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               json.insertAction(processedOutput, extraData)
+
+
               // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
               // if (typeof output === 'object') {
               //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
@@ -173,46 +176,19 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             }
           } catch (e: any) {
             console.log(e)
-            // const error: TextScriptErrorProps | Error = e
-            // setParseStr(e)
-            // if (editorRef.current && monacoRef.current) {
-            //   const monaco = monacoRef.current
-            //   const editor = editorRef.current
-            //   const model = editor.getModel()
-            //   if (model) {
-            //     const errorHash = (error as TextScriptErrorProps).hash
-            //     if (errorHash) {
-            //       if (errorHash.expected) {
-            //         const message = `expect ${errorHash.expected?.join(', ')} here, but got ${errorHash.token}`
-            //         onError?.({ e: [message], output: undefined })
-            // markers.push({
-            //   message,
-            //   severity: monaco.MarkerSeverity.Error,
-            //   startLineNumber: i + 1,
-            //   startColumn: errorHash.loc.first_column,
-            //   endLineNumber: errorHash.loc.last_line,
-            //   endColumn: i + 1,
-            // });
-            //       }
-            //     } else {
-            //       const undefinedName = value.replace(' is undefined', '')
-            //       const { startColumn, endColumn } = findFunctionPos(value, undefinedName)
-            //       onError?.({ e: [e.message as string], output: undefined })
-            //       markers.push({
-            //         message: e.message as string,
-            //         severity: monaco.MarkerSeverity.Error,
-            //         startLineNumber: i + 1,
-            //         startColumn,
-            //         endLineNumber: i + 1,
-            //         endColumn,
-            //       }
-            //       )
-            //     }
 
-            //   }
-            // }
+            json.insertAction(rawJSON.actions[i], extraData)
+            markers.push({
+              message: e,
+              severity: 8,
+              startLineNumber: i + 1,
+              startColumn: 0,
+              endLineNumber: i + 1,
+              endColumn: 999,
+            })
           }
         }
+        console.log(markers)
         monaco!.editor.setModelMarkers(model!, 'owner', markers)
       }
 
@@ -413,18 +389,6 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           }
 
         }} />}
-      {/* {debug && (
-        <div>
-          <span style={{ backgroundColor: "orange" }}>output(raw json):</span>
-          <pre>
-            {JSON.stringify(parseStr, null, 2)}
-          </pre>
-          <span style={{ backgroundColor: "orange" }}>converted from raw json:</span>
-          <pre>
-            {convertedStr}
-          </pre>
-        </div>
-      )} */}
     </div>
   )
 }
