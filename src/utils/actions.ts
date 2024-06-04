@@ -34,7 +34,7 @@ export const postProcessOutput = (output: AnyObject, extraData: ExtraDataProps =
 }
 
 export const setVariableDataTypeAndEntityType = (k: string, v: any, extraData: ExtraDataProps) => {
-  if (v === undefined) return
+  if (v === undefined || v === null) return
   if (v['function'] === 'getValueOfEntityVariable') {
     if (v['entity']?.['function'] === 'thisEntity') {
       const targetData = extraData.thisEntity.find((data) => data.key === v['variable']?.['variable']?.text)
