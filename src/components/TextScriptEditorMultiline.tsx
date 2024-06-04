@@ -176,8 +176,9 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             }
           } catch (e: any) {
             console.log(e)
-
-            json.insertAction(rawJSON.actions[i], extraData)
+            if (rawJSON.actions[i]) {
+              json.insertAction(rawJSON.actions[i], extraData)
+            }
             markers.push({
               message: e,
               severity: 8,
