@@ -1,7 +1,7 @@
 {
     "homepage": "http://moe-moe-pupil.github.io/script-editor",
     "name": "script-editor",
-    "version": "0.1.96",
+    "version": "0.1.97",
     "main": "dist/index.js",
     "dependencies": {
         "@monaco-editor/react": "^4.6.0",
