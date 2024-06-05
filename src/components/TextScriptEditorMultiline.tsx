@@ -88,6 +88,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           try {
             let value = ''
             let clearStruct = false
+            let disabled = false
             value = movedString.nextLineString + splitLine[i]
             const movedProps = moveStringToNextLine(value.trim())
             movedString.nextLineString = movedProps.nextLineString
@@ -109,6 +110,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               json.removeStruct(extraData)
               continue
             }
+            console.log(value)
             if (value !== '') {
               if (isComment(value)) {
                 json.insertUnusedComment(value.replace('//', '').trim())
@@ -118,15 +120,17 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
                 json.insertTriggers(parser.parse(value))
                 continue
               }
+
               if (isDisabled(value)) {
                 value = value.replace('--', '')
+                disabled = true
                 if (!value.trim().startsWith('{') && !value.trim().endsWith('}')) {
                   json.insertUnusedDisabled()
                 }
               }
               const funcProps = getFunctionProps(value, value.length - 1)
               if (STRUCTS[funcProps.functionName as keyof typeof STRUCTS]) {
-                json.setStruct(funcProps.functionName as keyof typeof STRUCTS)
+                json.setStruct(funcProps.functionName as keyof typeof STRUCTS, disabled)
               }
               extraSuggestions?.[defaultReturnType || '_']?.forEach((suggest) => {
                 if (value) {

@@ -175,7 +175,7 @@ export default class RawJSONGenerator {
   }
 
   public setStruct(key: keyof typeof STRUCTS, disabled: boolean = false) {
-    this._nextStruct.push({ currentKeyIdx: STRUCTS[key]._startIdx, struct: JSON.parse(JSON.stringify(STRUCTS[key])) })
+    this._nextStruct.push({ currentKeyIdx: STRUCTS[key]._startIdx, struct: { ...JSON.parse(JSON.stringify(STRUCTS[key])), disabled } })
     this.insertUnusedComment('', true);
     this.insertUnusedComment('', true);
   }
