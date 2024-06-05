@@ -123,18 +123,20 @@ export default class RawJSONGenerator {
   private _parent: string | null;
   private _key: string;
   private _order: number;
-  private _isProtected: boolean;
+  private _isProtected?: boolean;
+  private _isWorld?: boolean;
   private _nextStruct: {
     currentKeyIdx: number,
     struct: typeof STRUCTS[keyof typeof STRUCTS]
   }[] = [];
 
-  constructor({ name, parent, key, order, isProtected }: Pick<RawJSON, 'isProtected' | 'name' | 'parent' | 'key' | 'order'>) {
+  constructor({ name, parent, key, order, isProtected, isWorld }: Pick<RawJSON, 'isProtected' | 'name' | 'parent' | 'key' | 'order' | 'isWorld'>) {
     this._name = name
     this._parent = parent
     this._key = key
     this._order = order
     this._isProtected = isProtected
+    this._isWorld = isWorld
   }
 
   public insertTriggers(trigger: { type: string }) {

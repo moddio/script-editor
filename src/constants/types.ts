@@ -13,10 +13,11 @@ export interface RawJSON {
     true,
     true
   ],
-  isProtected: boolean,
+  isProtected?: boolean,
   actions: Record<string, any>[],
   name: string,
   parent: string | null,
   key: string,
+  isWorld: boolean,
   order: number
 }

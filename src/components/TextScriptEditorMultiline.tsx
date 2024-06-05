@@ -56,6 +56,7 @@ const multiScopesStrings = ['else']
 const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ onSuccess, onError, rawJSON, extraData, extraSuggestions, debug = false, defaultValue = '', defaultReturnType = '' }) => {
   const [parseStr, setParseStr] = useState<string | object>('')
   const [convertedStr, setConvertedStr] = useState('')
+  const [lastJSON, setLastJSON] = useState(rawJSON);
   const textRef = useRef<HTMLTextAreaElement | undefined>(undefined)
   const editorRef = useRef<editor.IStandaloneCodeEditor | undefined>(undefined);
   const monacoRef = useRef<Monaco | undefined>(undefined)
@@ -64,13 +65,13 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
     editorRef.current?.getModel()?.setEOL(0)
     if (v === '') {
       onSuccess?.(undefined)
+      setLastJSON({ ...rawJSON, actions: [], triggers: [] });
       setParseStr('')
       setConvertedStr('')
       monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
     } else {
-
-      const { name, key, order, parent, isProtected } = rawJSON
-      const json = new RawJSONGenerator({ name, key, order, parent, isProtected })
+      const { name, key, order, parent, isProtected, isWorld } = rawJSON
+      const json = new RawJSONGenerator({ name, key, order, parent, isProtected, isWorld })
       const splitLine = v?.split('\n')
       if (splitLine) {
         let movedString: movedStringProps = {
@@ -82,6 +83,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
         const monaco = monacoRef.current
         const editor = editorRef.current
         const model = editor!.getModel()
+        let nowLine = 0;
         for (let i = 0; i < splitLine.length; i++) {
           try {
             let value = ''
@@ -144,43 +146,15 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               const output = parser.parse(value)
               const processedOutput = typeof output === 'object' ? postProcessOutput(output, extraData) : output
               json.insertAction(processedOutput, extraData)
-
-
-              // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [])
-              // if (typeof output === 'object') {
-              //   const errors = checkTypeIsValid(value || '', output, defaultReturnType)
-              //   if (errors.length === 0) {
-              //     onSuccess?.(processedOutput)
-              //   } else {
-              //     onError?.({ e: errors.map((error) => error.message), output: processedOutput })
-              //     // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', errors)
-              //   }
-              // } else {
-              //   if (defaultReturnType !== undefined && defaultReturnType !== '' && typeof output !== defaultReturnType && !(typeof output === 'string' && defaultReturnType?.includes('Type'))
-              //     && !(typeof output === 'string' && defaultReturnType === 'script')
-              //   ) {
-              //     const message = `expect ${defaultReturnType} here, but got ${typeof output}`
-              //     onError?.({ e: [message], output: undefined })
-              // monacoRef.current!.editor.setModelMarkers(editorRef.current!.getModel()!, 'owner', [{
-              //   message,
-              //   severity: 8,
-              //   startLineNumber: i + 1,
-              //   startColumn: 0,
-              //   endLineNumber: i + 1,
-              //   endColumn: value?.length || 0,
-              // }])
-              //   } else {
-              //     onSuccess?.(processedOutput)
-              //   }
-              // }
+              nowLine += 1;
             }
           } catch (e: any) {
             console.log(e)
-            if (rawJSON.actions[i]) {
-              json.insertAction(rawJSON.actions[i], extraData)
+            if (rawJSON.actions[nowLine]) {
+              json.insertAction(rawJSON.actions[nowLine], extraData)
             }
             markers.push({
-              message: e,
+              message: typeof e === 'object' ? e.message : e,
               severity: 8,
               startLineNumber: i + 1,
               startColumn: 0,

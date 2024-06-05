@@ -33,6 +33,7 @@ export const Editor: Story = {
       }, true, true],
       actions: [],
       name: 'test',
+      isWorld: true,
       parent: null,
       key: '',
       order: 0
