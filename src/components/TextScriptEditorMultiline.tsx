@@ -110,7 +110,6 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               json.removeStruct(extraData)
               continue
             }
-            console.log(value)
             if (value !== '') {
               if (isComment(value)) {
                 json.insertUnusedComment(value.replace('//', '').trim())
@@ -153,7 +152,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
               nowLine += 1;
             }
           } catch (e: any) {
-            console.log(e)
+            // console.log(e)
             if (rawJSON.actions[nowLine]) {
               json.insertAction(rawJSON.actions[nowLine], extraData)
             }
@@ -167,7 +166,6 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
             })
           }
         }
-        console.log(markers)
         monaco!.editor.setModelMarkers(model!, 'owner', markers)
       }
 
@@ -364,7 +362,7 @@ const TextScriptEditorMultiline: React.FC<TextScriptEditorMultilineProps> = ({ o
           try {
             editorRef.current?.setValue(actionToString({ o: JSON.parse(v || ''), defaultReturnType, parentKey: '', gameData: { unitTypes: {} } }))
           } catch (e) {
-            console.log(e)
+            // console.log(e)
           }
 
         }} />}

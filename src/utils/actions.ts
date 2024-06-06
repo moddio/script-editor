@@ -310,7 +310,6 @@ export const getFunctionProps = (s: string, cursorPos: number): FunctionProps =>
       return iter
     },
   }))  
-  console.log(output)
   return output;
 }
 
